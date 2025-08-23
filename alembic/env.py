@@ -13,9 +13,18 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# Import your models here (will be created later)
-# from app.models.base import Base
-# from app.models import workspace, board, column, card, comment, attachment, audit_event, service_token
+# Import your models here
+from app.models.base import Base
+from app.models import (
+    Workspace,
+    Board,
+    Column,
+    Card,
+    Comment,
+    Attachment,
+    AuditEvent,
+    ServiceToken,
+)
 
 # Import settings
 from app.core.config import settings
@@ -31,8 +40,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# target_metadata = Base.metadata
-target_metadata = None  # Will be set when models are created
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

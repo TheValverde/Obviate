@@ -48,8 +48,11 @@ KanbanForAgents/
 3. ✅ **Set up dependency management** (pyproject.toml with Poetry/uv) - **COMPLETED**
 4. ✅ **Create environment configuration** (.env.example) - **COMPLETED**
 5. ✅ **Set up Docker Compose** for PostgreSQL development database - **COMPLETED**
-6. **Set up async SQLAlchemy with asyncpg** - Configure database models
-7. **Set up Alembic for migrations** - Create initial migration
+6. ✅ **Set up async SQLAlchemy with asyncpg** - **COMPLETED** (infrastructure ready)
+7. ✅ **Set up Alembic for migrations** - **COMPLETED** (configuration ready)
+8. **Create SQLAlchemy models** - Implement all core entities
+9. **Create initial migration** - Generate and test database schema
+10. **Set up repository pattern** - Create base repository and CRUD operations
 
 ### 📋 **Current Implementation Status**
 - **FastAPI App**: ✅ Basic app with health checks, CORS, logging middleware
@@ -57,12 +60,12 @@ KanbanForAgents/
 - **Database Setup**: ✅ Async SQLAlchemy engine and session factory
 - **Docker**: ✅ Multi-service setup with PostgreSQL, Redis, and FastAPI app
 - **Migrations**: ✅ Alembic configured but no models yet
-- **Models**: ❌ **NEXT PRIORITY** - Need to create SQLAlchemy models
+- **Models**: ✅ **COMPLETED** - SQLAlchemy models created and database schema deployed
 - **API Endpoints**: ❌ Only placeholder endpoints exist
 - **Authentication**: ❌ Not implemented yet
 
 ### 📋 **Current Sprint Focus**
-**Week 1: Foundation & Core Models** - Infrastructure Setup Phase
+**Week 1: Foundation & Core Models** - Models Implementation Phase
 
 ---
 
@@ -86,28 +89,40 @@ KanbanForAgents/
 - [x] Create Docker Compose setup for development ✅ **COMPLETED**
 - [x] Create Dockerfile for the FastAPI application ✅ **COMPLETED**
 - [x] Set up Docker networking between app and database ✅ **COMPLETED**
-- [ ] **NEXT: Configure async SQLAlchemy with asyncpg**
-- [ ] Set up Alembic for migrations
-- [ ] Set up PostgreSQL database with Docker
+- [x] Configure async SQLAlchemy with asyncpg ✅ **COMPLETED**
+- [x] Set up Alembic for migrations ✅ **COMPLETED**
+- [x] Set up PostgreSQL database with Docker ✅ **COMPLETED**
+
+### 🗄️ **CURRENT BRANCH: `feat/core-models` - Database Schema Implementation**
+- [x] **Create base model** with common fields (id, tenant_id, version, timestamps, soft delete) ✅ **COMPLETED**
+- [x] **Create SQLAlchemy models** for all core entities: ✅ **COMPLETED**
+  - [x] `workspaces` (optional for MVP)
+  - [x] `boards` (with template JSONB, metadata JSONB)
+  - [x] `columns` (with position INT, wip_limit, metadata JSONB)
+  - [x] `cards` (with agent_context JSONB, workflow_state JSONB, fields JSONB, links JSONB)
+  - [x] `comments` (with metadata JSONB)
+  - [x] `attachments` (metadata only, no blob storage)
+  - [x] `audit_events` (with agent_context JSONB, payload JSONB)
+  - [x] `service_tokens` (for API/MCP auth)
+- [x] **Update alembic/env.py** to import models and set target_metadata ✅ **COMPLETED**
+- [x] **Create initial migration** with all tables and required indexes: ✅ **COMPLETED**
+  - [x] `(tenant_id, id)` on every table
+  - [x] `cards(board_id, column_id, position)` for column paging
+  - [x] `audit_events(entity_type, entity_id, created_at desc)`
+- [x] **Implement ULID/UUIDv7 ID generation** for lexicographic ordering ✅ **COMPLETED**
+- [x] **Add optimistic concurrency** with `version` BIGINT field ✅ **COMPLETED**
+- [x] **Set up soft delete** via `deleted_at` timestamp ✅ **COMPLETED**
+- [ ] **Create base repository** with common CRUD operations
+- [ ] **Add tenant isolation** to all queries (mandatory tenant_id filtering)
+- [x] **Test migration flow** and database connectivity ✅ **COMPLETED**
+- [ ] **Create development seed data** (workspace, board, columns, sample cards)
 
 ### 🗄️ Database Schema
-- [ ] Create initial migration with core tables:
-  - [ ] workspaces (optional for MVP)
-  - [ ] boards (with template JSONB, metadata JSONB)
-  - [ ] columns (with position INT, wip_limit, metadata JSONB)
-  - [ ] cards (with agent_context JSONB, workflow_state JSONB, fields JSONB, links JSONB)
-  - [ ] comments (with metadata JSONB)
-  - [ ] attachments (metadata only, no blob storage)
-  - [ ] audit_events (with agent_context JSONB, payload JSONB)
-  - [ ] service_tokens (for API/MCP auth)
-- [ ] Add required indexes:
-  - [ ] `(tenant_id, id)` on every table
-  - [ ] `cards(board_id, column_id, position)` for column paging
-  - [ ] `audit_events(entity_type, entity_id, created_at desc)`
-- [ ] Implement ULIDs/UUIDv7-ish IDs for lexicographic ordering
-- [ ] Add optimistic concurrency with `version` BIGINT field
-- [ ] Set up soft delete via `deleted_at` timestamp
-- [ ] Create seed data for development (workspace, board, columns, sample cards)
+- [x] **Infrastructure setup** ✅ **COMPLETED** (async SQLAlchemy, Alembic config)
+- [x] **Models implementation** ✅ **COMPLETED** (feat/core-models branch)
+- [x] **Migration creation** ✅ **COMPLETED** (initial schema migration created and applied)
+- [ ] **Index optimization** (after migration complete)
+- [ ] **Seed data creation** (after migration complete)
 
 ### 🔐 Authentication & Authorization
 - [ ] Implement bearer token authentication middleware
@@ -118,13 +133,13 @@ KanbanForAgents/
 - [ ] Add rate limiting headers (X-RateLimit-* stubs for MVP)
 
 ### 📊 Core Models & Repositories
-- [ ] Implement SQLAlchemy models for all entities with proper JSONB fields
-- [ ] Create async repository pattern for data access
-- [ ] Add optimistic concurrency with version field (If-Match header validation)
-- [ ] Implement soft delete functionality via deleted_at
-- [ ] Create base repository with common CRUD operations
-- [ ] Add tenant isolation to all queries (mandatory tenant_id filtering)
-- [ ] Implement ULID/UUIDv7 ID generation for lexicographic ordering
+- [x] **Base model creation** ✅ **COMPLETED** (feat/core-models branch)
+- [x] **Entity models implementation** ✅ **COMPLETED** (workspaces, boards, columns, cards, comments, attachments, audit_events, service_tokens)
+- [ ] **Repository pattern setup** (base repository with common CRUD operations)
+- [ ] **Optimistic concurrency** with version field (If-Match header validation)
+- [ ] **Soft delete functionality** via deleted_at
+- [ ] **Tenant isolation** to all queries (mandatory tenant_id filtering)
+- [ ] **ULID/UUIDv7 ID generation** for lexicographic ordering
 
 ### 🧪 Basic Testing Setup
 - [ ] Set up pytest with async support
@@ -132,6 +147,129 @@ KanbanForAgents/
 - [ ] Add basic fixtures for test data
 - [ ] Write smoke tests for database connectivity
 - [ ] Set up test Docker Compose configuration
+
+---
+
+## 🎯 **DETAILED IMPLEMENTATION PLAN: `feat/core-models` Branch**
+
+### **Phase 1: Base Infrastructure (Day 1)**
+1. **Create base model** (`app/models/base.py`)
+   - Common fields: `id`, `tenant_id`, `version`, `created_at`, `updated_at`, `deleted_at`
+   - ULID/UUIDv7 ID generation utility
+   - Soft delete mixin
+   - Optimistic concurrency mixin
+
+2. **Update alembic configuration** (`alembic/env.py`)
+   - Import all models
+   - Set `target_metadata = Base.metadata`
+   - Configure async migration support
+
+### **Phase 2: Core Models (Day 1-2)**
+3. **Create entity models** (following README.md schema):
+   - `app/models/workspace.py` - Workspace model (optional for MVP)
+   - `app/models/board.py` - Board model with template/metadata JSONB
+   - `app/models/column.py` - Column model with position/wip_limit
+   - `app/models/card.py` - Card model with agent_context/workflow_state JSONB
+   - `app/models/comment.py` - Comment model with metadata JSONB
+   - `app/models/attachment.py` - Attachment model (metadata only)
+   - `app/models/audit_event.py` - Audit event model with agent_context JSONB
+   - `app/models/service_token.py` - Service token model for auth
+
+4. **Create model exports** (`app/models/__init__.py`)
+   - Export all models for Alembic discovery
+   - Create model registry
+
+### **Phase 3: Migration & Testing (Day 2)**
+5. **Generate initial migration**
+   - Run `alembic revision --autogenerate -m "Initial schema"`
+   - Review and adjust migration file
+   - Add required indexes manually if needed
+
+6. **Test migration flow**
+   - Run `alembic upgrade head`
+   - Verify all tables created correctly
+   - Test database connectivity
+
+### **Phase 4: Repository Pattern (Day 2-3)**
+7. **Create base repository** (`app/repositories/base.py`)
+   - Common CRUD operations
+   - Tenant isolation enforcement
+   - Optimistic concurrency handling
+   - Soft delete support
+
+8. **Create entity repositories**
+   - `app/repositories/workspace.py`
+   - `app/repositories/board.py`
+   - `app/repositories/column.py`
+   - `app/repositories/card.py`
+   - `app/repositories/comment.py`
+   - `app/repositories/attachment.py`
+   - `app/repositories/audit_event.py`
+   - `app/repositories/service_token.py`
+
+### **Phase 5: Seed Data & Validation (Day 3)**
+9. **Create development seed data**
+   - Workspace: "default"
+   - Board: "Agent Backlog"
+   - Columns: "Todo", "Doing", "Done"
+   - Sample cards with agent context
+
+10. **Test complete flow**
+    - Database connectivity
+    - Model operations
+    - Repository operations
+    - Migration rollback/upgrade
+
+### **Key Technical Decisions:**
+- **ID Generation**: ULID/UUIDv7 for lexicographic ordering
+- **JSONB Fields**: For extensibility (agent_context, workflow_state, etc.)
+- **Tenant Isolation**: Mandatory `tenant_id` filtering on all queries
+- **Optimistic Concurrency**: `version` field with If-Match validation
+- **Soft Delete**: `deleted_at` timestamp instead of hard deletes
+- **Indexes**: `(tenant_id, id)` on every table + specific performance indexes
+
+### **Files to Create/Modify:**
+```
+app/models/
+├── __init__.py (exports)
+├── base.py (base model)
+├── workspace.py
+├── board.py
+├── column.py
+├── card.py
+├── comment.py
+├── attachment.py
+├── audit_event.py
+└── service_token.py
+
+app/repositories/
+├── __init__.py
+├── base.py (base repository)
+├── workspace.py
+├── board.py
+├── column.py
+├── card.py
+├── comment.py
+├── attachment.py
+├── audit_event.py
+└── service_token.py
+
+alembic/
+├── env.py (update imports)
+└── versions/001_initial.py (generated)
+
+alembic/versions/
+└── 001_initial.py (initial migration)
+```
+
+### **Success Criteria:**
+- ✅ All models created with proper SQLAlchemy relationships
+- ✅ Initial migration generates and applies successfully
+- ✅ All required indexes created
+- ✅ Repository pattern implemented with tenant isolation
+- ✅ Seed data loads correctly
+- ✅ Database connectivity tested and working
+- ✅ Ready for API endpoint implementation in next branch
 
 ---
 
