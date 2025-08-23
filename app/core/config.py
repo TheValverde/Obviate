@@ -30,6 +30,15 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://kanban_user:kanban_password@localhost:5432/kanban_dev",
         description="Database connection URL"
     )
+    DATABASE_DSN: str = Field(
+        default="postgresql+asyncpg://kanban_user:kanban_password@localhost:5432/kanban_dev",
+        description="Database DSN (alias for DATABASE_URL)"
+    )
+    POSTGRES_USER: str = "kanban_user"
+    POSTGRES_PASSWORD: str = "kanban_password"
+    POSTGRES_DB: str = "kanban_dev"
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
     DATABASE_POOL_TIMEOUT: int = 30
@@ -146,6 +155,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "allow"  # Allow extra fields from environment variables
 
 
 # Create global settings instance

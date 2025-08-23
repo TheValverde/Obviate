@@ -20,7 +20,7 @@ RUN groupadd -r app && useradd -r -g app app
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY pyproject.toml ./
+COPY README.md pyproject.toml ./
 
 # Development stage
 FROM base as development
@@ -28,6 +28,8 @@ FROM base as development
 # Install development dependencies
 RUN pip install --upgrade pip && \
     pip install uv && \
+    uv venv && \
+    . .venv/bin/activate && \
     uv pip install -e ".[dev]"
 
 # Copy application code
@@ -47,13 +49,18 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/healthz || exit 1
 
+# Default command for development
+CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
 # Production stage
 FROM base as production
 
-# Install production dependencies only
+# Install production dependencies
 RUN pip install --upgrade pip && \
     pip install uv && \
-    uv pip install -e ".[test]"
+    uv venv && \
+    . .venv/bin/activate && \
+    uv pip install -e ".[prod]"
 
 # Copy application code
 COPY . .
@@ -72,5 +79,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/healthz || exit 1
 
-# Default command
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command for production
+CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
