@@ -47,31 +47,39 @@
 
 ### 🗄️ Database Schema
 - [ ] Create initial migration with core tables:
-  - [ ] workspaces
-  - [ ] boards  
-  - [ ] columns
-  - [ ] cards
-  - [ ] comments
-  - [ ] attachments
-  - [ ] audit_events
-  - [ ] service_tokens
-- [ ] Add indexes for performance (tenant_id, id, etc.)
-- [ ] Set up soft delete triggers/functions
-- [ ] Create seed data for development
+  - [ ] workspaces (optional for MVP)
+  - [ ] boards (with template JSONB, metadata JSONB)
+  - [ ] columns (with position INT, wip_limit, metadata JSONB)
+  - [ ] cards (with agent_context JSONB, workflow_state JSONB, fields JSONB, links JSONB)
+  - [ ] comments (with metadata JSONB)
+  - [ ] attachments (metadata only, no blob storage)
+  - [ ] audit_events (with agent_context JSONB, payload JSONB)
+  - [ ] service_tokens (for API/MCP auth)
+- [ ] Add required indexes:
+  - [ ] `(tenant_id, id)` on every table
+  - [ ] `cards(board_id, column_id, position)` for column paging
+  - [ ] `audit_events(entity_type, entity_id, created_at desc)`
+- [ ] Implement ULIDs/UUIDv7-ish IDs for lexicographic ordering
+- [ ] Add optimistic concurrency with `version` BIGINT field
+- [ ] Set up soft delete via `deleted_at` timestamp
+- [ ] Create seed data for development (workspace, board, columns, sample cards)
 
 ### 🔐 Authentication & Authorization
 - [ ] Implement bearer token authentication middleware
-- [ ] Create service token model and validation
-- [ ] Add tenant isolation (single tenant for MVP)
-- [ ] Set up basic scope checking (read/write/admin)
+- [ ] Create service token model and validation (argon2id hash at rest)
+- [ ] Add tenant isolation (single tenant for MVP, fixed tenant_id="default")
+- [ ] Set up scope checking (read/write/admin, write implies read)
 - [ ] Create token generation/validation utilities
+- [ ] Add rate limiting headers (X-RateLimit-* stubs for MVP)
 
 ### 📊 Core Models & Repositories
-- [ ] Implement SQLAlchemy models for all entities
+- [ ] Implement SQLAlchemy models for all entities with proper JSONB fields
 - [ ] Create async repository pattern for data access
-- [ ] Add optimistic concurrency with version field
-- [ ] Implement soft delete functionality
+- [ ] Add optimistic concurrency with version field (If-Match header validation)
+- [ ] Implement soft delete functionality via deleted_at
 - [ ] Create base repository with common CRUD operations
+- [ ] Add tenant isolation to all queries (mandatory tenant_id filtering)
+- [ ] Implement ULID/UUIDv7 ID generation for lexicographic ordering
 
 ### 🧪 Basic Testing Setup
 - [ ] Set up pytest with async support
@@ -87,26 +95,34 @@
 ### 🚀 REST API Endpoints
 - [ ] **Boards API**
   - [ ] POST /v1/boards (create)
-  - [ ] GET /v1/boards (list with pagination)
+  - [ ] GET /v1/boards?workspace_id=&limit=&cursor= (list with pagination)
   - [ ] GET /v1/boards/{board_id} (get single)
-  - [ ] PATCH /v1/boards/{board_id} (update)
+  - [ ] PATCH /v1/boards/{board_id} (name, description, archive toggle)
   - [ ] DELETE /v1/boards/{board_id} (soft delete)
 
 - [ ] **Columns API**
   - [ ] POST /v1/boards/{board_id}/columns (create)
   - [ ] GET /v1/boards/{board_id}/columns (list)
-  - [ ] PATCH /v1/columns/{column_id} (update)
-  - [ ] POST /v1/columns/{column_id}/reorder (reorder)
+  - [ ] PATCH /v1/columns/{column_id} (name, wip_limit, position)
+  - [ ] POST /v1/columns/{column_id}/reorder (accepts {after_id|before_id|position})
   - [ ] DELETE /v1/columns/{column_id} (delete)
 
 - [ ] **Cards API**
   - [ ] POST /v1/columns/{column_id}/cards (create)
-  - [ ] GET /v1/boards/{board_id}/cards (list with filters)
+  - [ ] GET /v1/boards/{board_id}/cards?column_id=&label=&assignee=&priority=&limit=&cursor= (list with filters)
   - [ ] GET /v1/cards/{card_id} (get single)
-  - [ ] PATCH /v1/cards/{card_id} (update)
-  - [ ] POST /v1/cards/{card_id}/move (move between columns)
-  - [ ] POST /v1/cards/{card_id}/reorder (reorder within column)
+  - [ ] PATCH /v1/cards/{card_id} (title, description, labels, assignees, priority, due_at, fields, links, agent_context, workflow_state)
+  - [ ] POST /v1/cards/{card_id}/move (target column_id, optional position)
+  - [ ] POST /v1/cards/{card_id}/reorder (same contract as columns)
   - [ ] DELETE /v1/cards/{card_id} (soft delete)
+
+- [ ] **Agent-Specific Endpoints**
+  - [ ] GET /v1/agents/{agent_id}/next_tasks?board_id=&limit=&cursor= (prioritized tasks)
+  - [ ] GET /v1/agents/{agent_id}/blockers?board_id=&limit=&cursor= (blocking issues)
+  - [ ] GET /v1/agents/{agent_id}/summary?board_id=&timeframe= (performance summary)
+
+- [ ] **Metrics Endpoints**
+  - [ ] GET /v1/boards/{board_id}/metrics (board performance metrics)
 
 ### 🔍 Search & Filtering
 - [ ] Implement basic text search on cards (title/description)
@@ -139,10 +155,12 @@
 
 ### 🛡️ Middleware & Validation
 - [ ] Implement If-Match header validation (optimistic concurrency)
-- [ ] Add idempotency key support
+- [ ] Add idempotency key support (hash method+path+body → Redis/DB)
 - [ ] Create request/response validation with Pydantic
-- [ ] Add rate limiting headers (stub implementation)
+- [ ] Add rate limiting headers (X-RateLimit-* stubs)
 - [ ] Implement proper error handling and responses
+- [ ] Add text field truncation (title≤256, description≤16KB, comment.body≤8KB)
+- [ ] Add JSONB size limits (fields≤16KB, reject oversize)
 
 ---
 
