@@ -61,6 +61,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - /app/.venv
       - /app/__pycache__
       - /app/.pytest_cache
     depends_on:
@@ -68,7 +69,7 @@ services:
         condition: service_healthy
     networks:
       - kanban-network
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
       interval: 30s

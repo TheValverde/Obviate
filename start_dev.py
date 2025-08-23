@@ -142,13 +142,9 @@ POSTGRES_PORT=5432
             print("📦 Installing from requirements.txt...")
             subprocess.run([str(pip_path), "install", "-r", str(requirements_file)], check=True)
         else:
-            print("📦 Installing basic dependencies...")
-            basic_deps = [
-                "fastapi", "uvicorn[standard]", "sqlalchemy[asyncio]", 
-                "asyncpg", "alembic", "pydantic", "python-dotenv",
-                "httpx", "pytest", "pytest-asyncio"
-            ]
-            subprocess.run([str(pip_path), "install"] + basic_deps, check=True)
+            print("📦 Installing from pyproject.toml...")
+            # Install the project in editable mode to get all dependencies from pyproject.toml
+            subprocess.run([str(pip_path), "install", "-e", "."], check=True)
         
         print("✅ Dependencies installed")
     
@@ -232,43 +228,32 @@ POSTGRES_PORT=5432
             return False
     
     def start_fastapi(self):
-        """Start FastAPI server."""
-        print("🚀 Starting FastAPI server...")
+        """Start FastAPI server using Docker Compose."""
+        print("🚀 Starting FastAPI server with Docker Compose...")
         
         if self.check_fastapi_status():
             print("✅ FastAPI server is already running")
             return
         
-        # Start FastAPI in background
-        python_path = self.venv_path / "Scripts" / "python.exe" if os.name == "nt" else self.venv_path / "bin" / "python"
-        
-        cmd = [
-            str(python_path), "-m", "uvicorn", 
-            "app.main:app", 
-            "--reload", 
-            "--host", "0.0.0.0", 
-            "--port", "8000"
-        ]
-        
-        # Start in background
-        if os.name == "nt":  # Windows
-            subprocess.Popen(cmd, cwd=self.project_root, 
-                           creationflags=subprocess.CREATE_NEW_CONSOLE)
-        else:  # Unix/Linux
-            subprocess.Popen(cmd, cwd=self.project_root, 
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Wait for server to be ready
-        print("⏳ Waiting for FastAPI server to be ready...")
-        for i in range(30):  # Wait up to 30 seconds
-            if self.check_fastapi_status():
-                print("✅ FastAPI server is ready")
-                return
-            time.sleep(1)
-            print(f"   Waiting... ({i+1}/30)")
-        
-        print("❌ FastAPI server failed to start within 30 seconds")
-        raise Exception("FastAPI startup timeout")
+        try:
+            # Start the app service using Docker Compose
+            self.run_docker_compose(["up", "-d", "app"])
+            
+            # Wait for server to be ready
+            print("⏳ Waiting for FastAPI server to be ready...")
+            for i in range(60):  # Wait up to 60 seconds for Docker container
+                if self.check_fastapi_status():
+                    print("✅ FastAPI server is ready")
+                    return
+                time.sleep(1)
+                print(f"   Waiting... ({i+1}/60)")
+            
+            print("❌ FastAPI server failed to start within 60 seconds")
+            raise Exception("FastAPI startup timeout")
+            
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to start FastAPI server: {e}")
+            raise
     
     def open_browser(self):
         """Open browser to API documentation."""
@@ -292,6 +277,17 @@ POSTGRES_PORT=5432
         # FastAPI status
         api_status = "✅ Running" if self.check_fastapi_status() else "❌ Stopped"
         print(f"🚀 FastAPI: {api_status}")
+        
+        # Check Docker container status
+        try:
+            result = subprocess.run(["docker", "ps", "--filter", "name=kanban-app", "--format", "{{.Status}}"], 
+                                  capture_output=True, text=True, check=True)
+            if result.stdout.strip():
+                print(f"🐳 App Container: ✅ {result.stdout.strip()}")
+            else:
+                print(f"🐳 App Container: ❌ Not running")
+        except Exception:
+            print(f"🐳 App Container: ❌ Error checking status")
         
         # URLs
         print(f"\n🌐 URLs:")
@@ -338,7 +334,14 @@ POSTGRES_PORT=5432
         """Stop all services."""
         print("🛑 Stopping all services...")
         
-        # Stop FastAPI (kill any uvicorn processes)
+        # Stop all Docker services
+        try:
+            self.run_docker_compose(["down"])
+            print("✅ Docker services stopped")
+        except Exception as e:
+            print(f"⚠️  Error stopping Docker services: {e}")
+        
+        # Also kill any local uvicorn processes (in case they're still running)
         try:
             if os.name == "nt":  # Windows
                 subprocess.run(["taskkill", "/f", "/im", "python.exe"], 
@@ -346,12 +349,6 @@ POSTGRES_PORT=5432
             else:  # Unix/Linux
                 subprocess.run(["pkill", "-f", "uvicorn"], 
                              capture_output=True, check=False)
-        except Exception:
-            pass
-        
-        # Stop Docker services
-        try:
-            self.run_docker_compose(["down"])
         except Exception:
             pass
         
