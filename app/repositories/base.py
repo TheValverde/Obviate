@@ -212,7 +212,8 @@ class BaseRepository(Generic[T]):
             data['version'] = version + 1
         
         # Add updated_at timestamp
-        data['updated_at'] = self.model.updated_at.property.columns[0].default.arg
+        from datetime import datetime, timezone
+        data['updated_at'] = datetime.now(timezone.utc)
         
         # Execute update
         result = await self.session.execute(update_query.values(**data))
@@ -269,7 +270,7 @@ class BaseRepository(Generic[T]):
             
             # Set deleted_at timestamp
             update_query = update_query.values(
-                deleted_at=self.model.deleted_at.property.columns[0].default.arg
+                deleted_at=datetime.now(timezone.utc)
             )
             
             result = await self.session.execute(update_query)

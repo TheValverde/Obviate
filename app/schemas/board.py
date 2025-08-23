@@ -17,7 +17,6 @@ class BoardBase(BaseModel):
     
     name: str = Field(..., min_length=1, max_length=255, description="Board name")
     description: Optional[str] = Field(None, max_length=1000, description="Board description")
-    workspace_id: str = Field(..., description="Workspace ID")
     template: Optional[Dict[str, Any]] = Field(default=None, description="Board template configuration")
     meta_data: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
 
@@ -25,22 +24,20 @@ class BoardBase(BaseModel):
 class BoardCreate(BoardBase):
     """Schema for creating a new board."""
     
-    pass
+    workspace_id: str = Field(..., description="Workspace ID")
 
 
 class BoardUpdate(BaseModel):
     """Schema for updating an existing board."""
     
-    name: Optional[str] = Field(None, min_length=1, max_length=255, description="Board name")
-    description: Optional[str] = Field(None, max_length=1000, description="Board description")
-    template: Optional[Dict[str, Any]] = Field(default=None, description="Board template configuration")
-    meta_data: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
+    pass
 
 
 class BoardResponse(BoardBase, BaseResponse):
     """Schema for board response."""
     
     id: str = Field(description="Board ID")
+    workspace_id: str = Field(description="Workspace ID")
     tenant_id: str = Field(description="Tenant ID")
     version: int = Field(description="Version number for optimistic concurrency")
     created_at: datetime = Field(description="Creation timestamp")
@@ -48,25 +45,21 @@ class BoardResponse(BoardBase, BaseResponse):
     deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
 
 
-class BoardListResponse(BaseResponse):
+class BoardListResponse(BoardBase, BaseResponse):
     """Schema for board list response."""
     
     id: str = Field(description="Board ID")
-    name: str = Field(description="Board name")
-    description: Optional[str] = Field(default=None, description="Board description")
     workspace_id: str = Field(description="Workspace ID")
     tenant_id: str = Field(description="Tenant ID")
     version: int = Field(description="Version number")
     created_at: datetime = Field(description="Creation timestamp")
     updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    template: Optional[Dict[str, Any]] = Field(default=None, description="Board template configuration")
-    meta_data: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
 
 
 class BoardArchiveRequest(BaseModel):
     """Schema for archiving/unarchiving a board."""
     
-    is_archived: bool = Field(description="Whether to archive or unarchive the board")
+    archived: bool = Field(description="Whether to archive or unarchive the board")
 
 
 class BoardFilterParams(BaseModel):
