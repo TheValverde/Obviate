@@ -33,6 +33,7 @@ from .column import (
     ColumnCreate,
     ColumnResponse,
     ColumnUpdate,
+    ColumnListResponse,
 )
 from .card import (
     CardCreate,
@@ -84,6 +85,7 @@ __all__ = [
     "ColumnCreate",
     "ColumnResponse",
     "ColumnUpdate",
+    "ColumnListResponse",
     # Card schemas
     "CardCreate",
     "CardResponse",
