@@ -26,10 +26,17 @@ async def get_column_repository(session: AsyncSession = Depends(get_db_session))
     return ColumnRepository(session)
 
 
+async def get_tenant_id() -> str:
+    """Get tenant ID from request context (for now, using default)."""
+    # TODO: Implement proper tenant resolution from authentication
+    return "default"
+
+
 @router.post("/", response_model=ColumnResponse, status_code=201)
 async def create_column(
     column_data: ColumnCreate,
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> ColumnResponse:
     """
     Create a new column.
@@ -45,7 +52,7 @@ async def create_column(
         BadRequestException: If column data is invalid
     """
     try:
-        column = await repo.create(column_data.model_dump())
+        column = await repo.create(data=column_data.model_dump(), tenant_id=tenant_id)
         return ColumnResponse.model_validate(column.to_dict())
     except Exception as e:
         raise BadRequestException(f"Failed to create column: {str(e)}")
@@ -54,7 +61,8 @@ async def create_column(
 @router.get("/{column_id}", response_model=ColumnResponse)
 async def get_column(
     column_id: str,
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> ColumnResponse:
     """
     Get a column by ID.
@@ -69,7 +77,7 @@ async def get_column(
     Raises:
         ColumnNotFoundException: If column not found
     """
-    column = await repo.get_by_id(column_id)
+    column = await repo.get_by_id(column_id, tenant_id)
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
@@ -81,7 +89,8 @@ async def list_columns(
     board_id: Optional[str] = Query(None, description="Filter by board ID"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of columns to return"),
     offset: int = Query(0, ge=0, description="Number of columns to skip"),
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> PaginatedResponse[ColumnListResponse]:
     """
     List columns with optional filtering.
@@ -101,17 +110,20 @@ async def list_columns(
         filters["board_id"] = board_id
     
     # Get columns with pagination
-    columns = await repo.list(limit=limit, offset=offset, **filters)
-    total_count = await repo.count(**filters)
+    columns = await repo.list(tenant_id, limit=limit, offset=offset, **filters)
+    total_count = await repo.count(tenant_id, **filters)
     
     # Convert to response models
     column_responses = [ColumnListResponse.model_validate(col.to_dict()) for col in columns]
     
     # Build pagination info
+    page = (offset // limit) + 1
+    pages = (total_count + limit - 1) // limit
     pagination_info = {
-        "total": total_count,
+        "page": page,
         "limit": limit,
-        "offset": offset,
+        "total": total_count,
+        "pages": pages,
         "has_next": offset + limit < total_count,
         "has_prev": offset > 0
     }
@@ -127,7 +139,8 @@ async def update_column(
     column_id: str,
     column_data: ColumnUpdate,
     if_match: Optional[str] = Header(None, alias="If-Match"),
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> ColumnResponse:
     """
     Update a column.
@@ -146,7 +159,7 @@ async def update_column(
         OptimisticConcurrencyException: If version mismatch
     """
     # Get current column to check version
-    current_column = await repo.get_by_id(column_id)
+    current_column = await repo.get_by_id(column_id, tenant_id)
     if not current_column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
@@ -162,7 +175,8 @@ async def update_column(
 @router.delete("/{column_id}", response_model=SuccessResponse)
 async def delete_column(
     column_id: str,
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> SuccessResponse:
     """
     Delete a column (soft delete).
@@ -177,7 +191,7 @@ async def delete_column(
     Raises:
         ColumnNotFoundException: If column not found
     """
-    column = await repo.get_by_id(column_id)
+    column = await repo.get_by_id(column_id, tenant_id)
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
@@ -189,7 +203,8 @@ async def delete_column(
 async def reorder_columns(
     column_id: str,
     new_position: int,
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> SuccessResponse:
     """
     Reorder a column within its board.
@@ -209,7 +224,7 @@ async def reorder_columns(
     if new_position < 0:
         raise BadRequestException("Position must be non-negative")
     
-    column = await repo.get_by_id(column_id)
+    column = await repo.get_by_id(column_id, tenant_id)
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
@@ -222,7 +237,8 @@ async def reorder_columns(
 @router.get("/board/{board_id}", response_model=List[ColumnListResponse])
 async def get_board_columns(
     board_id: str,
-    repo: ColumnRepository = Depends(get_column_repository)
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
 ) -> List[ColumnListResponse]:
     """
     Get all columns for a specific board.
@@ -234,5 +250,5 @@ async def get_board_columns(
     Returns:
         List[ColumnListResponse]: List of columns for the board
     """
-    columns = await repo.list(board_id=board_id, limit=1000)  # Get all columns for board
+    columns = await repo.list(tenant_id, board_id=board_id, limit=1000)  # Get all columns for board
     return [ColumnListResponse.model_validate(col.to_dict()) for col in columns]
