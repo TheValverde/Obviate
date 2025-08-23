@@ -41,3 +41,6 @@ venv.bak/
 # OS
 .DS_Store
 Thumbs.db
+
+# Debug logs
+debug/logs/*.log
