@@ -20,5 +20,5 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# Alias for easier import
-get_db = get_db_session
+# Export the dependency for use in endpoints
+__all__ = ["get_db_session"]
