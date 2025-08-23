@@ -27,7 +27,7 @@ Visit `http://localhost:8000/docs` for interactive Swagger/OpenAPI documentation
 
 Workspaces are the top-level organizational units that contain boards.
 
-- [📋 Workspace API Documentation](BOARD_API.md)
+- [📋 Workspace API Documentation](WORKSPACE_API.md)
 - **Endpoints**:
   - `POST /v1/workspaces/` - Create workspace
   - `GET /v1/workspaces/{workspace_id}` - Get workspace
@@ -283,6 +283,16 @@ Use the provided debug scripts in the `debug/scripts/` directory:
 - `debug_column_endpoints.py` - Test column operations
 - `debug_card_endpoints.py` - Test card operations
 
+## Additional Documentation
+
+### Workflow Guides
+- [📋 Workflow Guide](WORKFLOW_GUIDE.md) - Complete workflow patterns and examples
+- [📋 MCP Integration Guide](MCP_INTEGRATION_GUIDE.md) - Create MCP servers for AI agent integration
+
+### Development Resources
+- [📋 Debug Scripts](../debug/README.md) - Testing and debugging tools
+- [📋 TODO](../TODO.md) - Current development status and roadmap
+
 ## Support
 
 For issues, questions, or contributions:
@@ -290,6 +300,7 @@ For issues, questions, or contributions:
 2. Review the debug logs in `debug/logs/`
 3. Use the debug scripts for troubleshooting
 4. Check the TODO.md for current development status
+5. Review workflow guides for implementation patterns
 
 ## Version History
 
@@ -298,3 +309,4 @@ For issues, questions, or contributions:
   - Optimistic concurrency control
   - Comprehensive filtering and pagination
   - Move and reorder functionality for cards and columns
+  - Complete workflow documentation and MCP integration guides
