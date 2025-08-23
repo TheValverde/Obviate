@@ -23,6 +23,11 @@ from .board import (
     BoardCreate,
     BoardResponse,
     BoardUpdate,
+    BoardListResponse,
+    BoardArchiveRequest,
+    BoardFilterParams,
+    BoardWithColumnsResponse,
+    BoardStatsResponse,
 )
 from .column import (
     ColumnCreate,
@@ -70,6 +75,11 @@ __all__ = [
     "BoardCreate",
     "BoardResponse",
     "BoardUpdate",
+    "BoardListResponse",
+    "BoardArchiveRequest",
+    "BoardFilterParams",
+    "BoardWithColumnsResponse",
+    "BoardStatsResponse",
     # Column schemas
     "ColumnCreate",
     "ColumnResponse",
