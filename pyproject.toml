@@ -37,6 +37,7 @@ dependencies = [
     "httpx>=0.25.0",
     "structlog>=23.2.0",
     "tenacity>=8.2.0",
+    "requests"
 ]
 
 [project.optional-dependencies]

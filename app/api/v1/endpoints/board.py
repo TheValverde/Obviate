@@ -13,10 +13,11 @@ from app.core.dependencies import get_db_session
 from app.core.exceptions import (
     BoardNotFoundException, OptimisticConcurrencyException, BadRequestException
 )
-from app.repositories import BoardRepository
+from app.repositories import BoardRepository, ColumnRepository, CardRepository
 from app.schemas import (
     BoardCreate, BoardResponse, BoardUpdate, BoardListResponse,
-    BoardArchiveRequest, BoardFilterParams, SuccessResponse, PaginatedResponse, ErrorResponse
+    BoardArchiveRequest, BoardFilterParams, SuccessResponse, PaginatedResponse, ErrorResponse,
+    ColumnCreate, ColumnListResponse, CardListResponse
 )
 from app.schemas.base import PaginationInfo
 
@@ -25,23 +26,51 @@ router = APIRouter()
 async def get_board_repository(session: AsyncSession = Depends(get_db_session)) -> BoardRepository:
     return BoardRepository(session)
 
+async def get_column_repository(session: AsyncSession = Depends(get_db_session)) -> ColumnRepository:
+    return ColumnRepository(session)
+
+async def get_card_repository(session: AsyncSession = Depends(get_db_session)) -> CardRepository:
+    return CardRepository(session)
+
 async def get_tenant_id() -> str:
     return "default"  # TODO: Implement proper tenant resolution
 
 @router.post("/", response_model=SuccessResponse[BoardResponse], status_code=201)
 async def create_board(
     board_data: BoardCreate,
-    repo: BoardRepository = Depends(get_board_repository),
+    board_repo: BoardRepository = Depends(get_board_repository),
+    column_repo: ColumnRepository = Depends(get_column_repository),
     tenant_id: str = Depends(get_tenant_id)
 ):
-    """Create a new board."""
-    board = await repo.create(
+    """Create a new board with default columns."""
+    # Create the board
+    board = await board_repo.create(
         data=board_data.model_dump(),
         tenant_id=tenant_id
     )
+    
+    # Create default columns
+    default_columns = [
+        {"name": "To Do", "position": 0, "wip_limit": None},
+        {"name": "In Progress", "position": 1, "wip_limit": 5},
+        {"name": "Done", "position": 2, "wip_limit": None}
+    ]
+    
+    for column_data in default_columns:
+        column_create_data = ColumnCreate(
+            name=column_data["name"],
+            board_id=board.id,
+            position=column_data["position"],
+            wip_limit=column_data["wip_limit"]
+        )
+        await column_repo.create(
+            data=column_create_data.model_dump(),
+            tenant_id=tenant_id
+        )
+    
     return SuccessResponse(
         data=BoardResponse.model_validate(board),
-        message="Board created successfully"
+        message="Board created successfully with default columns"
     )
 
 @router.get("/{board_id}", response_model=SuccessResponse[BoardResponse])
@@ -215,4 +244,70 @@ async def archive_board(
     return SuccessResponse(
         data=BoardResponse.model_validate(board),
         message=message
+    )
+
+@router.get("/{board_id}/columns", response_model=PaginatedResponse[ColumnListResponse])
+async def get_board_columns(
+    board_id: str,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    repo: ColumnRepository = Depends(get_column_repository),
+    tenant_id: str = Depends(get_tenant_id)
+):
+    """Get all columns for a specific board."""
+    # Get columns with pagination
+    columns = await repo.list_by_board(board_id, tenant_id, limit=limit, offset=offset)
+    total_count = await repo.count_by_board(board_id, tenant_id)
+    
+    # Convert to response models
+    column_responses = [ColumnListResponse.model_validate(column.to_dict()) for column in columns]
+    
+    # Build pagination info
+    page = (offset // limit) + 1
+    pages = (total_count + limit - 1) // limit
+    pagination_info = {
+        "page": page,
+        "limit": limit,
+        "total": total_count,
+        "pages": pages,
+        "has_next": offset + limit < total_count,
+        "has_prev": offset > 0
+    }
+    
+    return PaginatedResponse(
+        data=column_responses,
+        pagination=pagination_info
+    )
+
+@router.get("/{board_id}/cards", response_model=PaginatedResponse[CardListResponse])
+async def get_board_cards(
+    board_id: str,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    repo: CardRepository = Depends(get_card_repository),
+    tenant_id: str = Depends(get_tenant_id)
+):
+    """Get all cards for a specific board."""
+    # Get cards with pagination
+    cards = await repo.list_by_board(board_id, tenant_id, limit=limit, offset=offset)
+    total_count = await repo.count_by_board(board_id, tenant_id)
+    
+    # Convert to response models
+    card_responses = [CardListResponse.model_validate(card.to_dict()) for card in cards]
+    
+    # Build pagination info
+    page = (offset // limit) + 1
+    pages = (total_count + limit - 1) // limit
+    pagination_info = {
+        "page": page,
+        "limit": limit,
+        "total": total_count,
+        "pages": pages,
+        "has_next": offset + limit < total_count,
+        "has_prev": offset > 0
+    }
+    
+    return PaginatedResponse(
+        data=card_responses,
+        pagination=pagination_info
     )

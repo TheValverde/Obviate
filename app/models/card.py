@@ -44,15 +44,15 @@ class Card(BaseModel):
     
     # Basic card properties
     title: Mapped[str] = mapped_column(
-        String(256),  # Limited to 256 chars as per README
+        String(255),  # Limited to 255 chars to match schema
         nullable=False,
         comment="Card title"
     )
     
     description: Mapped[Optional[str]] = mapped_column(
-        Text,
+        String(5000),  # Limited to 5000 chars to match schema
         nullable=True,
-        comment="Card description (limited to 16KB as per README)"
+        comment="Card description (limited to 5000 chars)"
     )
     
     # Arrays for assignees and labels
@@ -72,8 +72,8 @@ class Card(BaseModel):
     priority: Mapped[int] = mapped_column(
         SmallInteger,
         nullable=False,
-        default=0,
-        comment="Priority: 0=none, 1=low, 2=med, 3=high, 4=urgent"
+        default=1,
+        comment="Priority: 1=lowest, 2=low, 3=medium, 4=high, 5=highest"
     )
     
     status: Mapped[Optional[str]] = mapped_column(
@@ -119,6 +119,14 @@ class Card(BaseModel):
         JSONB,
         nullable=True,
         comment="Workflow tracking: phase, blockers, progress_percentage, time_spent_minutes, estimated_remaining_minutes"
+    )
+    
+    # Custom metadata for card-level configuration
+    meta_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSONB,
+        nullable=True,
+        default=None,
+        comment="Custom metadata for card-level configuration"
     )
     
     # Relationships
@@ -169,6 +177,7 @@ class Card(BaseModel):
             'links': self.links,
             'agent_context': self.agent_context,
             'workflow_state': self.workflow_state,
+            'meta_data': self.meta_data,
         })
         return base_dict
     
@@ -223,11 +232,11 @@ class Card(BaseModel):
     def priority_label(self) -> str:
         """Get human-readable priority label."""
         priority_labels = {
-            0: "none",
-            1: "low",
-            2: "medium",
-            3: "high",
-            4: "urgent"
+            1: "lowest",
+            2: "low",
+            3: "medium",
+            4: "high",
+            5: "highest"
         }
         return priority_labels.get(self.priority, "unknown")
 

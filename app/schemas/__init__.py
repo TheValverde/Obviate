@@ -33,11 +33,13 @@ from .column import (
     ColumnCreate,
     ColumnResponse,
     ColumnUpdate,
+    ColumnListResponse,
 )
 from .card import (
     CardCreate,
     CardResponse,
     CardUpdate,
+    CardListResponse,
 )
 from .comment import (
     CommentCreate,
@@ -84,10 +86,12 @@ __all__ = [
     "ColumnCreate",
     "ColumnResponse",
     "ColumnUpdate",
+    "ColumnListResponse",
     # Card schemas
     "CardCreate",
     "CardResponse",
     "CardUpdate",
+    "CardListResponse",
     # Comment schemas
     "CommentCreate",
     "CommentResponse",
