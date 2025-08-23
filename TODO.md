@@ -59,21 +59,24 @@ KanbanForAgents/
 - **Configuration**: ✅ Pydantic settings with environment validation
 - **Database Setup**: ✅ Async SQLAlchemy engine and session factory
 - **Docker**: ✅ Multi-service setup with PostgreSQL, Redis, and FastAPI app
-- **Migrations**: ✅ Alembic configured but no models yet
+- **Migrations**: ✅ **COMPLETED** - Initial schema migration applied
 - **Models**: ✅ **COMPLETED** - SQLAlchemy models created and database schema deployed
+- **Repository Pattern**: ❌ Not implemented yet (next sprint)
 - **API Endpoints**: ❌ Only placeholder endpoints exist
 - **Authentication**: ❌ Not implemented yet
 
 ### 📋 **Current Sprint Focus**
-**Week 1: Foundation & Core Models** - Models Implementation Phase
+**Week 1: Foundation & Core Models** - ✅ **COMPLETED** 
+**Week 2: Repository Pattern & Data Access** - 🔄 **NEXT SPRINT**
 
 ---
 
 ## Overall Timeline: **2-3 weeks**
 
-### Week 1: Foundation & Core Models
-### Week 2: API Surface & Business Logic  
-### Week 3: Polish & Agent Features
+### Week 1: Foundation & Core Models ✅ **COMPLETED**
+### Week 2: Repository Pattern & Data Access 🔄 **IN PROGRESS**  
+### Week 3: API Surface & Business Logic
+### Week 4: Polish & Agent Features
 
 ---
 
@@ -93,7 +96,7 @@ KanbanForAgents/
 - [x] Set up Alembic for migrations ✅ **COMPLETED**
 - [x] Set up PostgreSQL database with Docker ✅ **COMPLETED**
 
-### 🗄️ **CURRENT BRANCH: `feat/core-models` - Database Schema Implementation**
+### 🗄️ **COMPLETED BRANCH: `feat/core-models` - Database Schema Implementation** ✅ **MERGED**
 - [x] **Create base model** with common fields (id, tenant_id, version, timestamps, soft delete) ✅ **COMPLETED**
 - [x] **Create SQLAlchemy models** for all core entities: ✅ **COMPLETED**
   - [x] `workspaces` (optional for MVP)
@@ -116,6 +119,25 @@ KanbanForAgents/
 - [ ] **Add tenant isolation** to all queries (mandatory tenant_id filtering)
 - [x] **Test migration flow** and database connectivity ✅ **COMPLETED**
 - [ ] **Create development seed data** (workspace, board, columns, sample cards)
+
+### 🗄️ **NEXT BRANCH: `feat/repository-pattern` - Data Access Layer Implementation**
+- [ ] **Create base repository** (`app/repositories/base.py`) with common CRUD operations
+- [ ] **Implement tenant isolation** - Mandatory tenant_id filtering on all queries
+- [ ] **Add optimistic concurrency** - Version field handling with If-Match validation
+- [ ] **Set up soft delete functionality** - Automatic filtering of deleted records
+- [ ] **Create entity repositories** for all models:
+  - [ ] `app/repositories/workspace.py`
+  - [ ] `app/repositories/board.py`
+  - [ ] `app/repositories/column.py`
+  - [ ] `app/repositories/card.py`
+  - [ ] `app/repositories/comment.py`
+  - [ ] `app/repositories/attachment.py`
+  - [ ] `app/repositories/audit_event.py`
+  - [ ] `app/repositories/service_token.py`
+- [ ] **Add repository exports** (`app/repositories/__init__.py`)
+- [ ] **Create development seed data** - Workspace, board, columns, sample cards
+- [ ] **Test repository operations** - CRUD, tenant isolation, optimistic concurrency
+- [ ] **Add repository dependency injection** - FastAPI dependency for database sessions
 
 ### 🗄️ Database Schema
 - [x] **Infrastructure setup** ✅ **COMPLETED** (async SQLAlchemy, Alembic config)
@@ -150,7 +172,83 @@ KanbanForAgents/
 
 ---
 
-## 🎯 **DETAILED IMPLEMENTATION PLAN: `feat/core-models` Branch**
+## 🎯 **DETAILED IMPLEMENTATION PLAN: `feat/repository-pattern` Branch**
+
+### **Phase 1: Base Repository Infrastructure (Day 1)**
+1. **Create base repository** (`app/repositories/base.py`)
+   - Generic CRUD operations (create, read, update, delete)
+   - Tenant isolation enforcement (mandatory tenant_id filtering)
+   - Optimistic concurrency handling (version field management)
+   - Soft delete support (automatic deleted_at filtering)
+   - Pagination support with cursor-based pagination
+   - Error handling and validation
+
+2. **Set up repository structure**
+   - Create `app/repositories/` directory
+   - Add `app/repositories/__init__.py` with exports
+   - Set up dependency injection for database sessions
+
+### **Phase 2: Entity Repositories (Day 1-2)**
+3. **Create entity-specific repositories**
+   - `app/repositories/workspace.py` - Workspace CRUD operations
+   - `app/repositories/board.py` - Board operations with workspace relationships
+   - `app/repositories/column.py` - Column operations with board relationships
+   - `app/repositories/card.py` - Card operations with complex filtering
+   - `app/repositories/comment.py` - Comment operations with card relationships
+   - `app/repositories/attachment.py` - Attachment metadata operations
+   - `app/repositories/audit_event.py` - Audit event logging operations
+   - `app/repositories/service_token.py` - Token validation operations
+
+### **Phase 3: Seed Data & Testing (Day 2)**
+4. **Create development seed data**
+   - Default workspace: "default"
+   - Sample board: "Agent Backlog"
+   - Standard columns: "Todo", "Doing", "Done"
+   - Sample cards with agent context examples
+
+5. **Test repository operations**
+   - CRUD operations for all entities
+   - Tenant isolation verification
+   - Optimistic concurrency testing
+   - Soft delete functionality testing
+
+### **Key Technical Decisions:**
+- **Repository Pattern**: Clean separation between data access and business logic
+- **Tenant Isolation**: Every query must include tenant_id filter
+- **Optimistic Concurrency**: Version field with If-Match header validation
+- **Soft Delete**: Automatic filtering of deleted records in queries
+- **Dependency Injection**: FastAPI dependency for database sessions
+
+### **Files to Create:**
+```
+app/repositories/
+├── __init__.py (exports)
+├── base.py (base repository)
+├── workspace.py
+├── board.py
+├── column.py
+├── card.py
+├── comment.py
+├── attachment.py
+├── audit_event.py
+└── service_token.py
+
+app/core/
+└── dependencies.py (database session dependency)
+```
+
+### **Success Criteria:**
+- ✅ Base repository with all CRUD operations
+- ✅ Tenant isolation enforced on all queries
+- ✅ Optimistic concurrency working with version fields
+- ✅ Soft delete functionality implemented
+- ✅ All entity repositories created and tested
+- ✅ Seed data loads correctly
+- ✅ Ready for API endpoint implementation
+
+---
+
+## 🎯 **COMPLETED: `feat/core-models` Branch** ✅ **MERGED**
 
 ### **Phase 1: Base Infrastructure (Day 1)**
 1. **Create base model** (`app/models/base.py`)
