@@ -30,7 +30,7 @@ A Kanban board system designed specifically for AI agents, built with FastAPI, S
 ### Phase 3: API Endpoints (PARTIALLY COMPLETED - Day 2-3)
 - ✅ **Workspace endpoints** - Full CRUD operations implemented and tested
 - ✅ **Board endpoints** - Full CRUD operations implemented and tested
-- 🔄 **Column endpoints** - CRUD operations (HIGH PRIORITY - needed for cards)
+- ✅ **Column endpoints** - Full CRUD operations implemented and tested with reordering
 - 🔄 **Card endpoints** - CRUD operations + move/reorder (HIGH PRIORITY - core functionality)
 - 🔄 Comment endpoints - Ready for implementation
 - 🔄 Attachment endpoints - Ready for implementation
@@ -40,19 +40,19 @@ A Kanban board system designed specifically for AI agents, built with FastAPI, S
 ### Phase 3.1: Core Kanban Flow Implementation (IMMEDIATE PRIORITY)
 **Goal**: Get a working end-to-end Kanban system that users can actually use.
 
-#### Step 1: Fix Data Models (30 minutes)
-- 🔄 Add missing `status` and `meta_data` fields to Card model
-- 🔄 Fix validation mismatches between models and schemas (priority ranges, field lengths)
-- 🔄 Create database migration for card model updates
-- 🔄 Align schemas with README specification
+#### Step 1: Fix Data Models (COMPLETED)
+- ✅ Add missing `meta_data` field to Card model
+- ✅ Fix validation mismatches between models and schemas (priority ranges, field lengths)
+- ✅ Create database migration for card model updates
+- ✅ Align schemas with README specification
 
-#### Step 2: Implement Column Endpoints (1 hour)
-- 🔄 Create `app/api/v1/endpoints/column.py`
-- 🔄 Implement CRUD operations for columns (CREATE, READ, LIST, UPDATE, DELETE)
-- 🔄 Add column reordering functionality
-- 🔄 Add column filtering by board_id
-- 🔄 Test with real API calls
-- 🔄 Update API router to include column endpoints
+#### Step 2: Implement Column Endpoints (COMPLETED)
+- ✅ Create `app/api/v1/endpoints/column.py`
+- ✅ Implement CRUD operations for columns (CREATE, READ, LIST, UPDATE, DELETE)
+- ✅ Add column reordering functionality
+- ✅ Add column filtering by board_id
+- ✅ Test with real API calls
+- ✅ Update API router to include column endpoints
 
 #### Step 3: Implement Card Endpoints (1.5 hours)
 - 🔄 Create `app/api/v1/endpoints/card.py`
@@ -127,18 +127,24 @@ A Kanban board system designed specifically for AI agents, built with FastAPI, S
 - ✅ `app/schemas/` - Complete Pydantic schema hierarchy
 - ✅ `app/core/exceptions.py` - Custom exception classes
 - ✅ `app/api/v1/endpoints/workspace.py` - Workspace CRUD endpoints
+- ✅ `app/api/v1/endpoints/board.py` - Board CRUD endpoints
+- ✅ `app/api/v1/endpoints/column.py` - Column CRUD endpoints with reordering
 - ✅ `app/api/v1/api.py` - API router configuration
 - ✅ `app/models/workspace.py` - Added meta_data field
-- ✅ Database migration for workspace meta_data column
+- ✅ `app/models/card.py` - Fixed validation mismatches and added meta_data field
+- ✅ `app/repositories/base.py` - Fixed updated_at and deleted_at field handling
+- ✅ Database migrations for workspace meta_data and card model updates
+- ✅ `debug/` - Organized debug scripts and logging infrastructure
 
 ### Success Criteria:
 - ✅ **Workspace API fully functional** - CREATE, READ, LIST operations tested
 - ✅ **Board API fully functional** - CREATE, READ, LIST, UPDATE, DELETE operations tested
+- ✅ **Column API fully functional** - CREATE, READ, LIST, UPDATE, DELETE operations tested with reordering
 - ✅ **Database integration working** - PostgreSQL with proper schema
 - ✅ **Error handling implemented** - Custom exceptions with proper HTTP codes
 - ✅ **Documentation accessible** - OpenAPI/Swagger UI at `/docs`
+- ✅ **Debug infrastructure organized** - Proper debug scripts and logging system
 - 🔄 **Complete Kanban workflow** - Workspace → Board → Columns → Cards → Move Cards
-- 🔄 **Column endpoints implemented** - CRUD operations with reordering
 - 🔄 **Card endpoints implemented** - CRUD operations with move/reorder functionality
 - 🔄 **Default column creation** - Auto-create "Todo", "Doing", "Done" columns
 - 🔄 **Integration tests passing** - Full API test coverage
@@ -338,13 +344,14 @@ A Kanban board system designed specifically for AI agents, built with FastAPI, S
 ### Immediate (Current Sprint)
 1. ✅ **Complete workspace endpoints** - DONE
 2. ✅ **Complete board endpoints** - DONE
-3. 🔄 **Fix Card model** - Add missing fields and align with schemas
-4. 🔄 **Implement Column endpoints** - CRUD operations with reordering
-5. 🔄 **Implement Card endpoints** - CRUD operations with move/reorder
-6. 🔄 **Add default column creation** - Auto-create columns when boards are created
-7. 🔄 **Test complete Kanban workflow** - End-to-end user journey
-8. 🔄 **Add comprehensive testing**
-9. 🔄 **Optimize performance and add caching**
+3. ✅ **Fix Card model** - DONE (added meta_data field, fixed validation mismatches)
+4. ✅ **Implement Column endpoints** - DONE (CRUD operations with reordering)
+5. ✅ **Organize debug infrastructure** - DONE (proper scripts and logging)
+6. 🔄 **Implement Card endpoints** - CRUD operations with move/reorder (NEXT)
+7. 🔄 **Add default column creation** - Auto-create columns when boards are created
+8. 🔄 **Test complete Kanban workflow** - End-to-end user journey
+9. 🔄 **Add comprehensive testing**
+10. 🔄 **Optimize performance and add caching**
 
 ### Short Term (Next 2-3 weeks)
 1. **Frontend development** with React/TypeScript
@@ -362,4 +369,4 @@ A Kanban board system designed specifically for AI agents, built with FastAPI, S
 
 **Last Updated**: August 23, 2025  
 **Current Branch**: `feat/api-endpoints`  
-**Status**: Workspace and Board endpoints completed, ready for Column and Card implementation
+**Status**: Workspace, Board, and Column endpoints completed, Card model fixed, debug infrastructure organized. Ready for Card endpoints implementation.
