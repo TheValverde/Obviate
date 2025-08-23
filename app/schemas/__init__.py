@@ -39,6 +39,7 @@ from .card import (
     CardCreate,
     CardResponse,
     CardUpdate,
+    CardListResponse,
 )
 from .comment import (
     CommentCreate,
@@ -90,6 +91,7 @@ __all__ = [
     "CardCreate",
     "CardResponse",
     "CardUpdate",
+    "CardListResponse",
     # Comment schemas
     "CommentCreate",
     "CommentResponse",

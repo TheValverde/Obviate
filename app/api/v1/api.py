@@ -8,7 +8,7 @@ for the API version 1.
 from fastapi import APIRouter
 
 # Import route modules
-from app.api.v1.endpoints import workspace, board, column
+from app.api.v1.endpoints import workspace, board, column, card
 
 api_router = APIRouter()
 
@@ -16,8 +16,7 @@ api_router = APIRouter()
 api_router.include_router(workspace.router, prefix="/workspaces", tags=["workspaces"])
 api_router.include_router(board.router, prefix="/boards", tags=["boards"])
 api_router.include_router(column.router, prefix="/columns", tags=["columns"])
-# api_router.include_router(columns.router, prefix="/columns", tags=["columns"])
-# api_router.include_router(cards.router, prefix="/cards", tags=["cards"])
+api_router.include_router(card.router, prefix="/cards", tags=["cards"])
 # api_router.include_router(comments.router, prefix="/comments", tags=["comments"])
 # api_router.include_router(attachments.router, prefix="/attachments", tags=["attachments"])
 # api_router.include_router(audit.router, prefix="/audit", tags=["audit"])

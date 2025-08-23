@@ -92,6 +92,24 @@ async def debug_api_endpoints():
             logger.error(f"Column list test failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
+            
+        # Test 2.5: Card list endpoint
+        logger.info("Test 2.5: Testing card list endpoint...")
+        try:
+            response = client.get("/v1/cards/")
+            logger.info(f"Card list status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info("SUCCESS: Card list endpoint working!")
+                logger.info(f"Found {len(data.get('data', []))} cards")
+                logger.info(f"Pagination: {data.get('pagination', {})}")
+            else:
+                logger.error(f"FAILED: Card list failed: {response.text}")
+        except Exception as e:
+            logger.error(f"Card list test failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
         
         # Test 3: Board list endpoint
         logger.info("Test 3: Testing board list endpoint...")
