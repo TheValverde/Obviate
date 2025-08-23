@@ -132,8 +132,16 @@ async def list_cards(
             filters["labels"] = label_list
     
     # Get cards with pagination
-    cards = await repo.list(tenant_id, limit=limit, offset=offset, **filters)
-    total_count = await repo.count(tenant_id, **filters)
+    if board_id:
+        # Use list_by_board if board_id is provided
+        cards = await repo.list_by_board(board_id, tenant_id, limit=limit, offset=offset, filters=filters)
+        # For now, we'll get total count separately - this could be optimized
+        all_cards = await repo.list_by_board(board_id, tenant_id, limit=1000, offset=0, filters=filters)
+        total_count = len(all_cards)
+    else:
+        # Use base list method for general card listing
+        cards = await repo.list(tenant_id, limit=limit, offset=offset)
+        total_count = await repo.count(tenant_id)
     
     # Convert to response models
     card_responses = [CardListResponse.model_validate(card.to_dict()) for card in cards]
