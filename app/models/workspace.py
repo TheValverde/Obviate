@@ -5,7 +5,8 @@ Workspaces are optional grouping entities for MVP but provide a foundation
 for future multi-workspace support.
 """
 
-from sqlalchemy import String
+from typing import Any, Dict, Optional
+from sqlalchemy import String, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -28,6 +29,14 @@ class Workspace(BaseModel):
         comment="Workspace display name"
     )
     
+    # Custom metadata for workspace-level configuration
+    meta_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON,
+        nullable=True,
+        default=None,
+        comment="Custom metadata for workspace-level configuration"
+    )
+    
     # Relationships
     boards = relationship(
         "Board",
@@ -44,6 +53,7 @@ class Workspace(BaseModel):
         base_dict = super().to_dict()
         base_dict.update({
             'name': self.name,
+            'meta_data': self.meta_data,
         })
         return base_dict
 
