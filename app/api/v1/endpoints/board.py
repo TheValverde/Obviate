@@ -13,10 +13,11 @@ from app.core.dependencies import get_db_session
 from app.core.exceptions import (
     BoardNotFoundException, OptimisticConcurrencyException, BadRequestException
 )
-from app.repositories import BoardRepository
+from app.repositories import BoardRepository, ColumnRepository
 from app.schemas import (
     BoardCreate, BoardResponse, BoardUpdate, BoardListResponse,
-    BoardArchiveRequest, BoardFilterParams, SuccessResponse, PaginatedResponse, ErrorResponse
+    BoardArchiveRequest, BoardFilterParams, SuccessResponse, PaginatedResponse, ErrorResponse,
+    ColumnCreate
 )
 from app.schemas.base import PaginationInfo
 
@@ -25,23 +26,48 @@ router = APIRouter()
 async def get_board_repository(session: AsyncSession = Depends(get_db_session)) -> BoardRepository:
     return BoardRepository(session)
 
+async def get_column_repository(session: AsyncSession = Depends(get_db_session)) -> ColumnRepository:
+    return ColumnRepository(session)
+
 async def get_tenant_id() -> str:
     return "default"  # TODO: Implement proper tenant resolution
 
 @router.post("/", response_model=SuccessResponse[BoardResponse], status_code=201)
 async def create_board(
     board_data: BoardCreate,
-    repo: BoardRepository = Depends(get_board_repository),
+    board_repo: BoardRepository = Depends(get_board_repository),
+    column_repo: ColumnRepository = Depends(get_column_repository),
     tenant_id: str = Depends(get_tenant_id)
 ):
-    """Create a new board."""
-    board = await repo.create(
+    """Create a new board with default columns."""
+    # Create the board
+    board = await board_repo.create(
         data=board_data.model_dump(),
         tenant_id=tenant_id
     )
+    
+    # Create default columns
+    default_columns = [
+        {"name": "To Do", "position": 0, "wip_limit": None},
+        {"name": "In Progress", "position": 1, "wip_limit": 5},
+        {"name": "Done", "position": 2, "wip_limit": None}
+    ]
+    
+    for column_data in default_columns:
+        column_create_data = ColumnCreate(
+            name=column_data["name"],
+            board_id=board.id,
+            position=column_data["position"],
+            wip_limit=column_data["wip_limit"]
+        )
+        await column_repo.create(
+            data=column_create_data.model_dump(),
+            tenant_id=tenant_id
+        )
+    
     return SuccessResponse(
         data=BoardResponse.model_validate(board),
-        message="Board created successfully"
+        message="Board created successfully with default columns"
     )
 
 @router.get("/{board_id}", response_model=SuccessResponse[BoardResponse])
