@@ -112,14 +112,14 @@ class ColumnRepository(BaseRepository[Column]):
         max_position = result.scalar()
         return max_position if max_position is not None else 0
     
-    async def reorder_columns(
+    async def batch_update_positions(
         self,
         board_id: str,
         tenant_id: str,
         column_positions: List[tuple[str, int]]
     ) -> bool:
         """
-        Reorder columns within a board by updating their positions.
+        Batch update column positions within a board (internal helper).
         
         Args:
             board_id: Board ID
@@ -127,7 +127,7 @@ class ColumnRepository(BaseRepository[Column]):
             column_positions: List of (column_id, new_position) tuples
             
         Returns:
-            True if reordering was successful
+            True if batch update was successful
         """
         try:
             for column_id, new_position in column_positions:
@@ -140,37 +140,99 @@ class ColumnRepository(BaseRepository[Column]):
         except Exception:
             await self.session.rollback()
             return False
-    
-    async def move_column(
+
+    async def reorder_column(
         self,
         column_id: str,
         board_id: str,
         new_position: int,
-        tenant_id: str,
-        version: Optional[int] = None
-    ) -> Optional[Column]:
+        tenant_id: str
+    ) -> bool:
         """
-        Move a column to a new position within a board.
+        Reorder a column using "insert and shift" logic.
+        
+        This method implements proper reordering where:
+        1. The target column is moved to the new position
+        2. Other columns are shifted to accommodate the move
+        3. Positions are clamped to valid bounds
         
         Args:
-            column_id: Column ID
+            column_id: Column ID to reorder
             board_id: Board ID
-            new_position: New position
+            new_position: Target position (will be clamped to valid range)
             tenant_id: Tenant ID for isolation
-            version: Expected version for optimistic concurrency
             
         Returns:
-            Updated column instance or None if not found
+            True if reordering was successful
         """
-        return await self.update(
-            entity_id=column_id,
-            tenant_id=tenant_id,
-            data={
-                "board_id": board_id,
-                "position": new_position
-            },
-            version=version
-        )
+        try:
+            # Get all columns in the board, ordered by position
+            columns = await self.list_by_board(
+                board_id=board_id,
+                tenant_id=tenant_id,
+                limit=1000,
+                offset=0
+            )
+            
+            if not columns:
+                return False
+            
+            # Find the column to move
+            target_column = None
+            old_position = -1
+            for col in columns:
+                if col.id == column_id:
+                    target_column = col
+                    old_position = col.position
+                    break
+            
+            if not target_column:
+                return False
+            
+            # Clamp new_position to valid range [0, max_position]
+            max_position = len(columns) - 1
+            new_position = max(0, min(new_position, max_position))
+            
+            # If position hasn't changed, no need to reorder
+            if old_position == new_position:
+                return True
+            
+            # Create new position mapping
+            new_positions = []
+            
+            if old_position < new_position:
+                # Moving forward: shift columns in range [old_pos+1, new_pos] left by 1
+                for col in columns:
+                    if col.id == column_id:
+                        # Target column gets new position
+                        new_positions.append((col.id, new_position))
+                    elif old_position < col.position <= new_position:
+                        # Shift left by 1
+                        new_positions.append((col.id, col.position - 1))
+                    else:
+                        # Keep same position
+                        new_positions.append((col.id, col.position))
+            else:
+                # Moving backward: shift columns in range [new_pos, old_pos-1] right by 1
+                for col in columns:
+                    if col.id == column_id:
+                        # Target column gets new position
+                        new_positions.append((col.id, new_position))
+                    elif new_position <= col.position < old_position:
+                        # Shift right by 1
+                        new_positions.append((col.id, col.position + 1))
+                    else:
+                        # Keep same position
+                        new_positions.append((col.id, col.position))
+            
+            # Batch update all positions
+            return await self.batch_update_positions(board_id, tenant_id, new_positions)
+            
+        except Exception:
+            await self.session.rollback()
+            return False
+    
+
     
     async def count_by_board(
         self,

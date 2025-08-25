@@ -1,0 +1,50 @@
+{
+  "passed": 2,
+  "failed": 4,
+  "total": 6,
+  "success_rate": 33.33333333333333,
+  "tests": [
+    {
+      "name": "API Root",
+      "success": true,
+      "details": "API is running: Kanban For Agents API v1",
+      "error": "",
+      "timestamp": "2025-08-24T05:03:11.273151"
+    },
+    {
+      "name": "Create Workspace (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "Request failed: Expected status 200, got 307: ",
+      "timestamp": "2025-08-24T05:03:11.278434"
+    },
+    {
+      "name": "Create Board (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'workspace_id'",
+      "timestamp": "2025-08-24T05:03:11.279187"
+    },
+    {
+      "name": "Create Column (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:03:11.280198"
+    },
+    {
+      "name": "Create Card (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:03:11.281008"
+    },
+    {
+      "name": "Cleanup Test Data (HTTP)",
+      "success": true,
+      "details": "No test data to clean up",
+      "error": "",
+      "timestamp": "2025-08-24T05:03:11.281431"
+    }
+  ]
+}

@@ -143,11 +143,14 @@ async def update_column(
     tenant_id: str = Depends(get_tenant_id)
 ) -> ColumnResponse:
     """
-    Update a column.
+    Update a column (name, wip_limit, meta_data only).
+    
+    Note: Position changes must use the reorder endpoint:
+    POST /v1/columns/{column_id}/reorder?new_position={position}
     
     Args:
         column_id: Column ID
-        column_data: Column update data
+        column_data: Column update data (position changes not allowed)
         if_match: ETag for optimistic concurrency control
         repo: Column repository instance
         
@@ -157,6 +160,7 @@ async def update_column(
     Raises:
         ColumnNotFoundException: If column not found
         OptimisticConcurrencyException: If version mismatch
+        BadRequestException: If position is included in update data
     """
     # Get current column to check version
     current_column = await repo.get_by_id(column_id, tenant_id)
@@ -167,8 +171,9 @@ async def update_column(
     if if_match and str(current_column.version) != if_match:
         raise OptimisticConcurrencyException("Column has been modified by another request")
     
-    # Update column
-    updated_column = await repo.update(column_id, column_data.model_dump(exclude_unset=True))
+    # Update column (position changes are handled by reorder endpoint)
+    update_data = column_data.model_dump(exclude_unset=True)
+    updated_column = await repo.update(entity_id=column_id, tenant_id=tenant_id, data=update_data)
     return ColumnResponse.model_validate(updated_column.to_dict())
 
 
@@ -195,7 +200,7 @@ async def delete_column(
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
-    await repo.delete(column_id)
+    await repo.delete(entity_id=column_id, tenant_id=tenant_id)
     return SuccessResponse(data={"deleted": True})
 
 
@@ -207,15 +212,20 @@ async def reorder_columns(
     tenant_id: str = Depends(get_tenant_id)
 ) -> SuccessResponse:
     """
-    Reorder a column within its board.
+    Reorder a column within its board using "insert and shift" logic.
+    
+    This endpoint implements proper reordering where:
+    1. The target column is moved to the new position
+    2. Other columns are shifted to accommodate the move
+    3. Positions are clamped to valid bounds
     
     Args:
         column_id: Column ID
-        new_position: New position for the column
+        new_position: New position for the column (will be clamped to valid range)
         repo: Column repository instance
         
     Returns:
-        SuccessResponse: Success confirmation
+        SuccessResponse: Success confirmation with actual position used
         
     Raises:
         ColumnNotFoundException: If column not found
@@ -228,18 +238,35 @@ async def reorder_columns(
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
-    # Update column position
-    await repo.update(column_id, {"position": new_position})
+    # Use the improved reordering logic with shift
+    success = await repo.reorder_column(
+        column_id=column_id,
+        board_id=column.board_id,
+        new_position=new_position,
+        tenant_id=tenant_id
+    )
     
-    return SuccessResponse(data={"reordered": True, "new_position": new_position})
+    if not success:
+        raise BadRequestException("Failed to reorder column")
+    
+    # Get the updated column to return the actual position used
+    updated_column = await repo.get_by_id(column_id, tenant_id)
+    actual_position = updated_column.position if updated_column else new_position
+    
+    return SuccessResponse(data={
+        "reordered": True, 
+        "requested_position": new_position,
+        "actual_position": actual_position,
+        "message": f"Column moved to position {actual_position}"
+    })
 
 
-@router.get("/board/{board_id}", response_model=List[ColumnListResponse])
+@router.get("/board/{board_id}", response_model=PaginatedResponse[ColumnListResponse])
 async def get_board_columns(
     board_id: str,
     repo: ColumnRepository = Depends(get_column_repository),
     tenant_id: str = Depends(get_tenant_id)
-) -> List[ColumnListResponse]:
+) -> PaginatedResponse[ColumnListResponse]:
     """
     Get all columns for a specific board.
     
@@ -248,7 +275,26 @@ async def get_board_columns(
         repo: Column repository instance
         
     Returns:
-        List[ColumnListResponse]: List of columns for the board
+        PaginatedResponse[ColumnListResponse]: Paginated list of columns for the board
     """
-    columns = await repo.list(tenant_id, board_id=board_id, limit=1000)  # Get all columns for board
-    return [ColumnListResponse.model_validate(col.to_dict()) for col in columns]
+    columns = await repo.list(tenant_id, limit=1000, filters={"board_id": board_id})  # Get all columns for board
+    total_count = await repo.count(tenant_id, filters={"board_id": board_id})
+    
+    # Convert to response models
+    column_responses = [ColumnListResponse.model_validate(col.to_dict()) for col in columns]
+    
+    # Build pagination info
+    pagination_info = {
+        "page": 1,
+        "limit": 1000,
+        "total": total_count,
+        "pages": 1,
+        "has_next": False,
+        "has_prev": False
+    }
+    
+    return PaginatedResponse(
+        success=True,
+        data=column_responses,
+        pagination=pagination_info
+    )

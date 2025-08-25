@@ -148,45 +148,16 @@ class CardRepository(BaseRepository[Card]):
         max_position = result.scalar()
         return max_position if max_position is not None else 0
     
-    async def move_card(
-        self,
-        card_id: str,
-        column_id: str,
-        position: int,
-        tenant_id: str,
-        version: Optional[int] = None
-    ) -> Optional[Card]:
-        """
-        Move a card to a new column and position.
-        
-        Args:
-            card_id: Card ID
-            column_id: Target column ID
-            position: Target position
-            tenant_id: Tenant ID for isolation
-            version: Expected version for optimistic concurrency
-            
-        Returns:
-            Updated card instance or None if not found
-        """
-        return await self.update(
-            entity_id=card_id,
-            tenant_id=tenant_id,
-            data={
-                "column_id": column_id,
-                "position": position
-            },
-            version=version
-        )
+
     
-    async def reorder_cards(
+    async def batch_update_positions(
         self,
         column_id: str,
         tenant_id: str,
         card_positions: List[tuple[str, int]]
     ) -> bool:
         """
-        Reorder cards within a column by updating their positions.
+        Batch update card positions within a column (internal helper).
         
         Args:
             column_id: Column ID
@@ -194,7 +165,7 @@ class CardRepository(BaseRepository[Card]):
             card_positions: List of (card_id, new_position) tuples
             
         Returns:
-            True if reordering was successful
+            True if batch update was successful
         """
         try:
             for card_id, new_position in card_positions:
@@ -208,6 +179,183 @@ class CardRepository(BaseRepository[Card]):
             await self.session.rollback()
             return False
     
+    async def reorder_card(
+        self,
+        card_id: str,
+        column_id: str,
+        new_position: int,
+        tenant_id: str
+    ) -> bool:
+        """
+        Reorder a card within its column using "insert and shift" logic.
+        
+        This method implements proper reordering where:
+        1. The target card is moved to the new position
+        2. Other cards are shifted to accommodate the move
+        3. Positions are clamped to valid bounds
+        
+        Args:
+            card_id: Card ID to reorder
+            column_id: Column ID
+            new_position: Target position (will be clamped to valid range)
+            tenant_id: Tenant ID for isolation
+            
+        Returns:
+            True if reordering was successful
+        """
+        try:
+            # Get all cards in the column, ordered by position
+            cards = await self.list_by_column(
+                column_id=column_id,
+                tenant_id=tenant_id,
+                limit=1000,
+                offset=0
+            )
+            
+            if not cards:
+                return False
+            
+            # Find the card to move
+            target_card = None
+            old_position = -1
+            for card in cards:
+                if card.id == card_id:
+                    target_card = card
+                    old_position = card.position
+                    break
+            
+            if not target_card:
+                return False
+            
+            # Clamp new_position to valid range [0, max_position]
+            max_position = len(cards) - 1
+            new_position = max(0, min(new_position, max_position))
+            
+            # If position hasn't changed, no need to reorder
+            if old_position == new_position:
+                return True
+            
+            # Create new position mapping
+            new_positions = []
+            
+            if old_position < new_position:
+                # Moving forward: shift cards in range [old_pos+1, new_pos] left by 1
+                for card in cards:
+                    if card.id == card_id:
+                        # Target card gets new position
+                        new_positions.append((card.id, new_position))
+                    elif old_position < card.position <= new_position:
+                        # Shift left by 1
+                        new_positions.append((card.id, card.position - 1))
+                    else:
+                        # Keep same position
+                        new_positions.append((card.id, card.position))
+            else:
+                # Moving backward: shift cards in range [new_pos, old_pos-1] right by 1
+                for card in cards:
+                    if card.id == card_id:
+                        # Target card gets new position
+                        new_positions.append((card.id, new_position))
+                    elif new_position <= card.position < old_position:
+                        # Shift right by 1
+                        new_positions.append((card.id, card.position + 1))
+                    else:
+                        # Keep same position
+                        new_positions.append((card.id, card.position))
+            
+            # Batch update all positions
+            return await self.batch_update_positions(column_id, tenant_id, new_positions)
+            
+        except Exception:
+            await self.session.rollback()
+            return False
+
+    async def move_card(
+        self,
+        card_id: str,
+        target_column_id: str,
+        target_position: Optional[int],
+        tenant_id: str
+    ) -> bool:
+        """
+        Move a card to a different column with intelligent positioning.
+        
+        This method handles cross-column movement where:
+        1. The card is moved to the target column
+        2. If target_position is specified: card is placed at that position with shifting
+        3. If target_position is None: card is appended to the end of target column
+        4. All position changes are batched and atomic
+        
+        Args:
+            card_id: Card ID to move
+            target_column_id: Target column ID
+            target_position: Target position (None = append to end)
+            tenant_id: Tenant ID for isolation
+            
+        Returns:
+            True if move was successful
+        """
+        try:
+            # Get the card to move
+            card = await self.get_by_id(card_id, tenant_id)
+            if not card:
+                return False
+            
+            old_column_id = card.column_id
+            
+            # If moving to same column, just reorder
+            if old_column_id == target_column_id:
+                if target_position is not None:
+                    return await self.reorder_card(card_id, target_column_id, target_position, tenant_id)
+                return True  # No change needed
+            
+            # Get cards in target column
+            target_cards = await self.list_by_column(
+                column_id=target_column_id,
+                tenant_id=tenant_id,
+                limit=1000,
+                offset=0
+            )
+            
+            # Determine target position
+            if target_position is None:
+                # Append to end
+                target_position = len(target_cards)
+            else:
+                # Clamp to valid range
+                target_position = max(0, min(target_position, len(target_cards)))
+            
+            # Prepare position updates for target column
+            target_positions = []
+            for i, target_card in enumerate(target_cards):
+                if i >= target_position:
+                    # Shift right by 1 to make room
+                    target_positions.append((target_card.id, i + 1))
+                else:
+                    # Keep same position
+                    target_positions.append((target_card.id, i))
+            
+            # Add the moved card at target position
+            target_positions.append((card_id, target_position))
+            
+            # Update all positions in target column
+            success = await self.batch_update_positions(target_column_id, tenant_id, target_positions)
+            if not success:
+                return False
+            
+            # Update the card's column_id
+            await self.update(
+                entity_id=card_id,
+                tenant_id=tenant_id,
+                data={"column_id": target_column_id}
+            )
+            
+            return True
+            
+        except Exception:
+            await self.session.rollback()
+            return False
+
     async def search_cards(
         self,
         board_id: str,

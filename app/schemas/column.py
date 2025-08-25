@@ -29,10 +29,9 @@ class ColumnCreate(ColumnBase):
 
 
 class ColumnUpdate(BaseModel):
-    """Schema for updating an existing column."""
+    """Schema for updating an existing column (position changes must use reorder endpoint)."""
     
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="Column name")
-    position: Optional[int] = Field(None, ge=0, description="Column position (0-based)")
     wip_limit: Optional[int] = Field(None, ge=0, description="Work-in-progress limit")
     meta_data: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
 
@@ -63,16 +62,7 @@ class ColumnListResponse(BaseResponse):
     meta_data: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
 
 
-class ColumnMoveRequest(BaseModel):
-    """Schema for moving a column to a new position."""
-    
-    position: int = Field(..., ge=0, description="New position for the column")
 
-
-class ColumnReorderRequest(BaseModel):
-    """Schema for reordering multiple columns."""
-    
-    column_positions: list[tuple[str, int]] = Field(..., description="List of (column_id, new_position) tuples")
 
 
 class ColumnFilterParams(BaseModel):

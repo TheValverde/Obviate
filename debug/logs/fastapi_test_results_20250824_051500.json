@@ -1,0 +1,113 @@
+{
+  "passed": 8,
+  "failed": 7,
+  "total": 15,
+  "success_rate": 53.333333333333336,
+  "tests": [
+    {
+      "name": "API Root",
+      "success": true,
+      "details": "API is running: Kanban For Agents API v1",
+      "error": "",
+      "timestamp": "2025-08-24T05:14:59.811796"
+    },
+    {
+      "name": "Create Workspace (HTTP)",
+      "success": true,
+      "details": "Created workspace 'HTTP Test Workspace' with ID: AGMNWXAO2UO355TCUCOFCAZP7N",
+      "error": "",
+      "timestamp": "2025-08-24T05:14:59.884479"
+    },
+    {
+      "name": "Get Workspace by ID (HTTP)",
+      "success": true,
+      "details": "Retrieved workspace 'HTTP Test Workspace'",
+      "error": "",
+      "timestamp": "2025-08-24T05:14:59.896452"
+    },
+    {
+      "name": "List Workspaces (HTTP)",
+      "success": false,
+      "details": "No workspaces found",
+      "error": "",
+      "timestamp": "2025-08-24T05:14:59.965646"
+    },
+    {
+      "name": "Update Workspace (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'name'",
+      "timestamp": "2025-08-24T05:14:59.986984"
+    },
+    {
+      "name": "Get Workspace by Name (HTTP)",
+      "success": false,
+      "details": "Skipped - endpoint not implemented: 'name'",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.010226"
+    },
+    {
+      "name": "Archive Workspace (HTTP)",
+      "success": false,
+      "details": "Skipped - endpoint not implemented: Request failed: Expected status 200, got 422: {\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\"],\"msg\":\"Field required\",\"input\":null}]}",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.020547"
+    },
+    {
+      "name": "Create Board (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'id'",
+      "timestamp": "2025-08-24T05:15:00.187016"
+    },
+    {
+      "name": "Create Column (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:15:00.187634"
+    },
+    {
+      "name": "Create Card (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:15:00.188070"
+    },
+    {
+      "name": "Delete Card (HTTP)",
+      "success": true,
+      "details": "No test card to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.188528"
+    },
+    {
+      "name": "Delete Column (HTTP)",
+      "success": true,
+      "details": "No test column to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.188877"
+    },
+    {
+      "name": "Delete Board (HTTP)",
+      "success": true,
+      "details": "No test board to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.189445"
+    },
+    {
+      "name": "Delete Workspace (HTTP)",
+      "success": true,
+      "details": "Deleted test workspace successfully",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.204975"
+    },
+    {
+      "name": "Cleanup Test Data (HTTP)",
+      "success": true,
+      "details": "Delete operations completed in previous step",
+      "error": "",
+      "timestamp": "2025-08-24T05:15:00.205507"
+    }
+  ]
+}

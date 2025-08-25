@@ -1,0 +1,78 @@
+{
+  "passed": 6,
+  "failed": 4,
+  "total": 10,
+  "success_rate": 60.0,
+  "tests": [
+    {
+      "name": "API Root",
+      "success": true,
+      "details": "API is running: Kanban For Agents API v1",
+      "error": "",
+      "timestamp": "2025-08-24T05:13:17.587027"
+    },
+    {
+      "name": "Create Workspace (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'id'",
+      "timestamp": "2025-08-24T05:13:17.765820"
+    },
+    {
+      "name": "Create Board (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'workspace_id'",
+      "timestamp": "2025-08-24T05:13:17.766498"
+    },
+    {
+      "name": "Create Column (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:13:17.767112"
+    },
+    {
+      "name": "Create Card (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:13:17.767572"
+    },
+    {
+      "name": "Delete Card (HTTP)",
+      "success": true,
+      "details": "No test card to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:13:17.768011"
+    },
+    {
+      "name": "Delete Column (HTTP)",
+      "success": true,
+      "details": "No test column to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:13:17.768400"
+    },
+    {
+      "name": "Delete Board (HTTP)",
+      "success": true,
+      "details": "No test board to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:13:17.768725"
+    },
+    {
+      "name": "Delete Workspace (HTTP)",
+      "success": true,
+      "details": "No test workspace to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:13:17.769073"
+    },
+    {
+      "name": "Cleanup Test Data (HTTP)",
+      "success": true,
+      "details": "Delete operations completed in previous step",
+      "error": "",
+      "timestamp": "2025-08-24T05:13:17.769558"
+    }
+  ]
+}

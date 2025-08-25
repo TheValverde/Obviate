@@ -173,11 +173,15 @@ async def update_card(
     tenant_id: str = Depends(get_tenant_id)
 ) -> CardResponse:
     """
-    Update a card.
+    Update a card (title, description, priority, labels, assignees, etc. only).
+    
+    Note: Position and column changes must use the dedicated endpoints:
+    - POST /v1/cards/{card_id}/move - Move between columns
+    - POST /v1/cards/{card_id}/reorder - Reorder within column
     
     Args:
         card_id: Card ID
-        card_data: Card update data
+        card_data: Card update data (position/column changes not allowed)
         if_match: ETag for optimistic concurrency control
         repo: Card repository instance
         tenant_id: Tenant ID for isolation
@@ -188,6 +192,7 @@ async def update_card(
     Raises:
         CardNotFoundException: If card not found
         OptimisticConcurrencyException: If version mismatch
+        BadRequestException: If position/column is included in update data
     """
     # Get current card to check version
     current_card = await repo.get_by_id(card_id, tenant_id)
@@ -198,8 +203,9 @@ async def update_card(
     if if_match and str(current_card.version) != if_match:
         raise OptimisticConcurrencyException("Card has been modified by another request")
     
-    # Update card
-    updated_card = await repo.update(card_id, card_data.model_dump(exclude_unset=True))
+    # Update card (position/column changes are handled by dedicated endpoints)
+    update_data = card_data.model_dump(exclude_unset=True)
+    updated_card = await repo.update(entity_id=card_id, tenant_id=tenant_id, data=update_data)
     return CardResponse.model_validate(updated_card.to_dict())
 
 
@@ -227,7 +233,7 @@ async def delete_card(
     if not card:
         raise CardNotFoundException(f"Card with ID {card_id} not found")
     
-    await repo.delete(card_id)
+    await repo.delete(entity_id=card_id, tenant_id=tenant_id)
     return SuccessResponse(data={"deleted": True})
 
 
@@ -261,12 +267,19 @@ async def move_card(
     if not card:
         raise CardNotFoundException(f"Card with ID {card_id} not found")
     
-    # Update card with new column_id and optional position
-    update_data = {"column_id": column_id}
-    if position is not None:
-        update_data["position"] = position
+    # Use the smart move logic
+    success = await repo.move_card(
+        card_id=card_id,
+        target_column_id=column_id,
+        target_position=position,
+        tenant_id=tenant_id
+    )
     
-    updated_card = await repo.update(card_id, update_data)
+    if not success:
+        raise BadRequestException("Failed to move card")
+    
+    # Get the updated card
+    updated_card = await repo.get_by_id(card_id, tenant_id)
     return CardResponse.model_validate(updated_card.to_dict())
 
 
@@ -300,8 +313,19 @@ async def reorder_card(
     if not card:
         raise CardNotFoundException(f"Card with ID {card_id} not found")
     
-    # Update card position
-    updated_card = await repo.update(card_id, {"position": new_position})
+    # Use the smart reorder logic
+    success = await repo.reorder_card(
+        card_id=card_id,
+        column_id=card.column_id,
+        new_position=new_position,
+        tenant_id=tenant_id
+    )
+    
+    if not success:
+        raise BadRequestException("Failed to reorder card")
+    
+    # Get the updated card
+    updated_card = await repo.get_by_id(card_id, tenant_id)
     return CardResponse.model_validate(updated_card.to_dict())
 
 
