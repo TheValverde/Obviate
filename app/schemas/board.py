@@ -30,7 +30,10 @@ class BoardCreate(BoardBase):
 class BoardUpdate(BaseModel):
     """Schema for updating an existing board."""
     
-    pass
+    name: Optional[str] = Field(None, min_length=1, max_length=255, description="Board name")
+    description: Optional[str] = Field(None, max_length=1000, description="Board description")
+    template: Optional[Dict[str, Any]] = Field(None, description="Board template configuration")
+    meta_data: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
 
 class BoardResponse(BoardBase, BaseResponse):

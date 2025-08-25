@@ -4,6 +4,7 @@ optimistic concurrency, and soft delete support.
 """
 
 from typing import TypeVar, Generic, Optional, List, Dict, Any, Union
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, and_, or_
 from sqlalchemy.orm import selectinload
@@ -212,7 +213,6 @@ class BaseRepository(Generic[T]):
             data['version'] = version + 1
         
         # Add updated_at timestamp
-        from datetime import datetime, timezone
         data['updated_at'] = datetime.now(timezone.utc)
         
         # Execute update

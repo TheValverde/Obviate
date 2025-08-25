@@ -30,6 +30,8 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.env
+.venv/
 
 # IDE
 .vscode/
@@ -44,3 +46,13 @@ Thumbs.db
 
 # Debug logs
 debug/logs/*.log
+
+# Test results and investigation files
+debug/logs/api_test_results_*.json
+investigation/active_investigation/*.py
+investigation/active_investigation/simple_test.py
+investigation/active_investigation/test_column_listing.py
+
+# Swagger MCP files
+.swagger-mcp
+d0a5037068b2cc67939d816a7dce3104087d5d2c53748565f4f3e258465761c9.json

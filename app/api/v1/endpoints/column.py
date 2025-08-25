@@ -195,7 +195,7 @@ async def delete_column(
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
-    await repo.delete(column_id)
+    await repo.delete(entity_id=column_id, tenant_id=tenant_id)
     return SuccessResponse(data={"deleted": True})
 
 
@@ -229,17 +229,17 @@ async def reorder_columns(
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
     # Update column position
-    await repo.update(column_id, {"position": new_position})
+    await repo.update(entity_id=column_id, tenant_id=tenant_id, data={"position": new_position})
     
     return SuccessResponse(data={"reordered": True, "new_position": new_position})
 
 
-@router.get("/board/{board_id}", response_model=List[ColumnListResponse])
+@router.get("/board/{board_id}", response_model=PaginatedResponse[ColumnListResponse])
 async def get_board_columns(
     board_id: str,
     repo: ColumnRepository = Depends(get_column_repository),
     tenant_id: str = Depends(get_tenant_id)
-) -> List[ColumnListResponse]:
+) -> PaginatedResponse[ColumnListResponse]:
     """
     Get all columns for a specific board.
     
@@ -248,7 +248,26 @@ async def get_board_columns(
         repo: Column repository instance
         
     Returns:
-        List[ColumnListResponse]: List of columns for the board
+        PaginatedResponse[ColumnListResponse]: Paginated list of columns for the board
     """
-    columns = await repo.list(tenant_id, board_id=board_id, limit=1000)  # Get all columns for board
-    return [ColumnListResponse.model_validate(col.to_dict()) for col in columns]
+    columns = await repo.list(tenant_id, limit=1000, filters={"board_id": board_id})  # Get all columns for board
+    total_count = await repo.count(tenant_id, filters={"board_id": board_id})
+    
+    # Convert to response models
+    column_responses = [ColumnListResponse.model_validate(col.to_dict()) for col in columns]
+    
+    # Build pagination info
+    pagination_info = {
+        "page": 1,
+        "limit": 1000,
+        "total": total_count,
+        "pages": 1,
+        "has_next": False,
+        "has_prev": False
+    }
+    
+    return PaginatedResponse(
+        success=True,
+        data=column_responses,
+        pagination=pagination_info
+    )

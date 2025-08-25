@@ -1,0 +1,78 @@
+{
+  "passed": 6,
+  "failed": 4,
+  "total": 10,
+  "success_rate": 60.0,
+  "tests": [
+    {
+      "name": "API Root",
+      "success": true,
+      "details": "API is running: Kanban For Agents API v1",
+      "error": "",
+      "timestamp": "2025-08-24T05:05:44.770606"
+    },
+    {
+      "name": "Create Workspace (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "Request failed: Expected status 200, got 307: ",
+      "timestamp": "2025-08-24T05:05:44.775373"
+    },
+    {
+      "name": "Create Board (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'workspace_id'",
+      "timestamp": "2025-08-24T05:05:44.776083"
+    },
+    {
+      "name": "Create Column (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:05:44.776716"
+    },
+    {
+      "name": "Create Card (HTTP)",
+      "success": false,
+      "details": "",
+      "error": "'board_id'",
+      "timestamp": "2025-08-24T05:05:44.777192"
+    },
+    {
+      "name": "Delete Card (HTTP)",
+      "success": true,
+      "details": "No test card to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:05:44.777669"
+    },
+    {
+      "name": "Delete Column (HTTP)",
+      "success": true,
+      "details": "No test column to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:05:44.778075"
+    },
+    {
+      "name": "Delete Board (HTTP)",
+      "success": true,
+      "details": "No test board to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:05:44.778563"
+    },
+    {
+      "name": "Delete Workspace (HTTP)",
+      "success": true,
+      "details": "No test workspace to delete",
+      "error": "",
+      "timestamp": "2025-08-24T05:05:44.779041"
+    },
+    {
+      "name": "Cleanup Test Data (HTTP)",
+      "success": true,
+      "details": "Delete operations completed in previous step",
+      "error": "",
+      "timestamp": "2025-08-24T05:05:44.779641"
+    }
+  ]
+}

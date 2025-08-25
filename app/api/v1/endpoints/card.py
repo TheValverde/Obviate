@@ -199,7 +199,7 @@ async def update_card(
         raise OptimisticConcurrencyException("Card has been modified by another request")
     
     # Update card
-    updated_card = await repo.update(card_id, card_data.model_dump(exclude_unset=True))
+    updated_card = await repo.update(entity_id=card_id, tenant_id=tenant_id, data=card_data.model_dump(exclude_unset=True))
     return CardResponse.model_validate(updated_card.to_dict())
 
 
@@ -227,7 +227,7 @@ async def delete_card(
     if not card:
         raise CardNotFoundException(f"Card with ID {card_id} not found")
     
-    await repo.delete(card_id)
+    await repo.delete(entity_id=card_id, tenant_id=tenant_id)
     return SuccessResponse(data={"deleted": True})
 
 
@@ -266,7 +266,7 @@ async def move_card(
     if position is not None:
         update_data["position"] = position
     
-    updated_card = await repo.update(card_id, update_data)
+    updated_card = await repo.update(entity_id=card_id, tenant_id=tenant_id, data=update_data)
     return CardResponse.model_validate(updated_card.to_dict())
 
 
@@ -301,7 +301,7 @@ async def reorder_card(
         raise CardNotFoundException(f"Card with ID {card_id} not found")
     
     # Update card position
-    updated_card = await repo.update(card_id, {"position": new_position})
+    updated_card = await repo.update(entity_id=card_id, tenant_id=tenant_id, data={"position": new_position})
     return CardResponse.model_validate(updated_card.to_dict())
 
 
