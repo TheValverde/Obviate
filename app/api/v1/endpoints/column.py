@@ -143,11 +143,14 @@ async def update_column(
     tenant_id: str = Depends(get_tenant_id)
 ) -> ColumnResponse:
     """
-    Update a column.
+    Update a column (name, wip_limit, meta_data only).
+    
+    Note: Position changes must use the reorder endpoint:
+    POST /v1/columns/{column_id}/reorder?new_position={position}
     
     Args:
         column_id: Column ID
-        column_data: Column update data
+        column_data: Column update data (position changes not allowed)
         if_match: ETag for optimistic concurrency control
         repo: Column repository instance
         
@@ -157,6 +160,7 @@ async def update_column(
     Raises:
         ColumnNotFoundException: If column not found
         OptimisticConcurrencyException: If version mismatch
+        BadRequestException: If position is included in update data
     """
     # Get current column to check version
     current_column = await repo.get_by_id(column_id, tenant_id)
@@ -167,8 +171,9 @@ async def update_column(
     if if_match and str(current_column.version) != if_match:
         raise OptimisticConcurrencyException("Column has been modified by another request")
     
-    # Update column
-    updated_column = await repo.update(column_id, column_data.model_dump(exclude_unset=True))
+    # Update column (position changes are handled by reorder endpoint)
+    update_data = column_data.model_dump(exclude_unset=True)
+    updated_column = await repo.update(entity_id=column_id, tenant_id=tenant_id, data=update_data)
     return ColumnResponse.model_validate(updated_column.to_dict())
 
 
@@ -234,7 +239,7 @@ async def reorder_columns(
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
     # Use the improved reordering logic with shift
-    success = await repo.reorder_column_with_shift(
+    success = await repo.reorder_column(
         column_id=column_id,
         board_id=column.board_id,
         new_position=new_position,

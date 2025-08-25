@@ -112,14 +112,14 @@ class ColumnRepository(BaseRepository[Column]):
         max_position = result.scalar()
         return max_position if max_position is not None else 0
     
-    async def reorder_columns(
+    async def batch_update_positions(
         self,
         board_id: str,
         tenant_id: str,
         column_positions: List[tuple[str, int]]
     ) -> bool:
         """
-        Reorder columns within a board by updating their positions.
+        Batch update column positions within a board (internal helper).
         
         Args:
             board_id: Board ID
@@ -127,7 +127,7 @@ class ColumnRepository(BaseRepository[Column]):
             column_positions: List of (column_id, new_position) tuples
             
         Returns:
-            True if reordering was successful
+            True if batch update was successful
         """
         try:
             for column_id, new_position in column_positions:
@@ -141,7 +141,7 @@ class ColumnRepository(BaseRepository[Column]):
             await self.session.rollback()
             return False
 
-    async def reorder_column_with_shift(
+    async def reorder_column(
         self,
         column_id: str,
         board_id: str,
@@ -226,42 +226,13 @@ class ColumnRepository(BaseRepository[Column]):
                         new_positions.append((col.id, col.position))
             
             # Batch update all positions
-            return await self.reorder_columns(board_id, tenant_id, new_positions)
+            return await self.batch_update_positions(board_id, tenant_id, new_positions)
             
         except Exception:
             await self.session.rollback()
             return False
     
-    async def move_column(
-        self,
-        column_id: str,
-        board_id: str,
-        new_position: int,
-        tenant_id: str,
-        version: Optional[int] = None
-    ) -> Optional[Column]:
-        """
-        Move a column to a new position within a board.
-        
-        Args:
-            column_id: Column ID
-            board_id: Board ID
-            new_position: New position
-            tenant_id: Tenant ID for isolation
-            version: Expected version for optimistic concurrency
-            
-        Returns:
-            Updated column instance or None if not found
-        """
-        return await self.update(
-            entity_id=column_id,
-            tenant_id=tenant_id,
-            data={
-                "board_id": board_id,
-                "position": new_position
-            },
-            version=version
-        )
+
     
     async def count_by_board(
         self,
