@@ -207,15 +207,20 @@ async def reorder_columns(
     tenant_id: str = Depends(get_tenant_id)
 ) -> SuccessResponse:
     """
-    Reorder a column within its board.
+    Reorder a column within its board using "insert and shift" logic.
+    
+    This endpoint implements proper reordering where:
+    1. The target column is moved to the new position
+    2. Other columns are shifted to accommodate the move
+    3. Positions are clamped to valid bounds
     
     Args:
         column_id: Column ID
-        new_position: New position for the column
+        new_position: New position for the column (will be clamped to valid range)
         repo: Column repository instance
         
     Returns:
-        SuccessResponse: Success confirmation
+        SuccessResponse: Success confirmation with actual position used
         
     Raises:
         ColumnNotFoundException: If column not found
@@ -228,10 +233,27 @@ async def reorder_columns(
     if not column:
         raise ColumnNotFoundException(f"Column with ID {column_id} not found")
     
-    # Update column position
-    await repo.update(entity_id=column_id, tenant_id=tenant_id, data={"position": new_position})
+    # Use the improved reordering logic with shift
+    success = await repo.reorder_column_with_shift(
+        column_id=column_id,
+        board_id=column.board_id,
+        new_position=new_position,
+        tenant_id=tenant_id
+    )
     
-    return SuccessResponse(data={"reordered": True, "new_position": new_position})
+    if not success:
+        raise BadRequestException("Failed to reorder column")
+    
+    # Get the updated column to return the actual position used
+    updated_column = await repo.get_by_id(column_id, tenant_id)
+    actual_position = updated_column.position if updated_column else new_position
+    
+    return SuccessResponse(data={
+        "reordered": True, 
+        "requested_position": new_position,
+        "actual_position": actual_position,
+        "message": f"Column moved to position {actual_position}"
+    })
 
 
 @router.get("/board/{board_id}", response_model=PaginatedResponse[ColumnListResponse])

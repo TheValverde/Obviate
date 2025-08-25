@@ -140,6 +140,97 @@ class ColumnRepository(BaseRepository[Column]):
         except Exception:
             await self.session.rollback()
             return False
+
+    async def reorder_column_with_shift(
+        self,
+        column_id: str,
+        board_id: str,
+        new_position: int,
+        tenant_id: str
+    ) -> bool:
+        """
+        Reorder a column using "insert and shift" logic.
+        
+        This method implements proper reordering where:
+        1. The target column is moved to the new position
+        2. Other columns are shifted to accommodate the move
+        3. Positions are clamped to valid bounds
+        
+        Args:
+            column_id: Column ID to reorder
+            board_id: Board ID
+            new_position: Target position (will be clamped to valid range)
+            tenant_id: Tenant ID for isolation
+            
+        Returns:
+            True if reordering was successful
+        """
+        try:
+            # Get all columns in the board, ordered by position
+            columns = await self.list_by_board(
+                board_id=board_id,
+                tenant_id=tenant_id,
+                limit=1000,
+                offset=0
+            )
+            
+            if not columns:
+                return False
+            
+            # Find the column to move
+            target_column = None
+            old_position = -1
+            for col in columns:
+                if col.id == column_id:
+                    target_column = col
+                    old_position = col.position
+                    break
+            
+            if not target_column:
+                return False
+            
+            # Clamp new_position to valid range [0, max_position]
+            max_position = len(columns) - 1
+            new_position = max(0, min(new_position, max_position))
+            
+            # If position hasn't changed, no need to reorder
+            if old_position == new_position:
+                return True
+            
+            # Create new position mapping
+            new_positions = []
+            
+            if old_position < new_position:
+                # Moving forward: shift columns in range [old_pos+1, new_pos] left by 1
+                for col in columns:
+                    if col.id == column_id:
+                        # Target column gets new position
+                        new_positions.append((col.id, new_position))
+                    elif old_position < col.position <= new_position:
+                        # Shift left by 1
+                        new_positions.append((col.id, col.position - 1))
+                    else:
+                        # Keep same position
+                        new_positions.append((col.id, col.position))
+            else:
+                # Moving backward: shift columns in range [new_pos, old_pos-1] right by 1
+                for col in columns:
+                    if col.id == column_id:
+                        # Target column gets new position
+                        new_positions.append((col.id, new_position))
+                    elif new_position <= col.position < old_position:
+                        # Shift right by 1
+                        new_positions.append((col.id, col.position + 1))
+                    else:
+                        # Keep same position
+                        new_positions.append((col.id, col.position))
+            
+            # Batch update all positions
+            return await self.reorder_columns(board_id, tenant_id, new_positions)
+            
+        except Exception:
+            await self.session.rollback()
+            return False
     
     async def move_column(
         self,
