@@ -37,12 +37,10 @@ class CardCreate(CardBase):
 
 
 class CardUpdate(BaseModel):
-    """Schema for updating an existing card."""
+    """Schema for updating an existing card (position changes must use move/reorder endpoints)."""
     
     title: Optional[str] = Field(None, min_length=1, max_length=255, description="Card title")
     description: Optional[str] = Field(None, max_length=5000, description="Card description")
-    column_id: Optional[str] = Field(None, description="Column ID")
-    position: Optional[int] = Field(None, ge=0, description="Card position within column")
     priority: Optional[int] = Field(None, ge=1, le=5, description="Card priority")
     labels: Optional[List[str]] = Field(default=None, description="Card labels")
     assignees: Optional[List[str]] = Field(default=None, description="List of assignees")
@@ -85,17 +83,7 @@ class CardListResponse(BaseResponse):
     meta_data: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
 
 
-class CardMoveRequest(BaseModel):
-    """Schema for moving a card to a new column and position."""
-    
-    column_id: str = Field(..., description="Target column ID")
-    position: int = Field(..., ge=0, description="Target position within the column")
 
-
-class CardReorderRequest(BaseModel):
-    """Schema for reordering multiple cards within a column."""
-    
-    card_positions: list[tuple[str, int]] = Field(..., description="List of (card_id, new_position) tuples")
 
 
 class CardSearchRequest(BaseModel):
