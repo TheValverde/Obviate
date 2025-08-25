@@ -41,6 +41,10 @@ async def create_card(
     """
     Create a new card.
     
+    If position is not provided, the card will be automatically appended to the end
+    of the specified column. If position is provided, it will be used (and may cause
+    position conflicts that need to be resolved via reordering).
+    
     Args:
         card_data: Card creation data
         repo: Card repository instance
@@ -53,7 +57,24 @@ async def create_card(
         BadRequestException: If card data is invalid
     """
     try:
-        card = await repo.create(data=card_data.model_dump(), tenant_id=tenant_id)
+        # Prepare card data
+        card_dict = card_data.model_dump()
+        
+        # If position is not provided, automatically assign to the end of the column
+        if card_data.position is None:
+            max_position = await repo.get_max_position(card_data.column_id, tenant_id)
+            # If max_position is 0, check if the column is actually empty
+            if max_position == 0:
+                # Check if there are any cards in the column
+                cards_in_column = await repo.list_by_column(card_data.column_id, tenant_id, limit=1)
+                if not cards_in_column:
+                    card_dict["position"] = 0  # First card in empty column
+                else:
+                    card_dict["position"] = 1  # Next position after existing cards
+            else:
+                card_dict["position"] = max_position + 1  # Next position after the current maximum
+        
+        card = await repo.create(data=card_dict, tenant_id=tenant_id)
         return CardResponse.model_validate(card.to_dict())
     except Exception as e:
         raise BadRequestException(f"Failed to create card: {str(e)}")
