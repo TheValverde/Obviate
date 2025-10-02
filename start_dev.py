@@ -42,9 +42,9 @@ class DevEnvironment:
         self.venv_path = self.project_root / "venv"
         
         # Service URLs
-        self.fastapi_url = "http://localhost:8000"
-        self.api_docs_url = "http://localhost:8000/docs"
-        self.db_url = "postgresql://kanban:kanban@localhost:5432/kanban_dev"
+        self.fastapi_url = "http://localhost:12003"
+        self.api_docs_url = "http://localhost:12003/docs"
+        self.db_url = "postgresql://kanban:kanban@localhost:12001/kanban_dev"
         
     def print_banner(self):
         """Print startup banner."""
@@ -112,21 +112,21 @@ class DevEnvironment:
         env_content = """# Kanban For Agents - Development Environment
 
 # Database
-DATABASE_URL=postgresql://kanban:kanban@localhost:5432/kanban_dev
-DATABASE_DSN=postgresql+asyncpg://kanban:kanban@localhost:5432/kanban_dev
+DATABASE_URL=postgresql://kanban:kanban@localhost:12001/kanban_dev
+DATABASE_DSN=postgresql+asyncpg://kanban:kanban@localhost:12001/kanban_dev
 
 # Application Settings
 DEBUG=true
 LOG_LEVEL=DEBUG
 HOST=0.0.0.0
-PORT=8000
+PORT=12003
 
 # Docker Settings
 POSTGRES_USER=kanban
 POSTGRES_PASSWORD=kanban
 POSTGRES_DB=kanban_dev
 POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+POSTGRES_PORT=12001
 """
         with open(self.env_file, 'w') as f:
             f.write(env_content)

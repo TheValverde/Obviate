@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: kanban_password
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
-      - "5432:5432"
+      - "12001:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -34,7 +34,7 @@ services:
       POSTGRES_PASSWORD: kanban_password
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
-      - "5433:5432"
+      - "12002:5432"
     volumes:
       - postgres_test_data:/var/lib/postgresql/data
     networks:
@@ -58,7 +58,7 @@ services:
       - DEBUG=true
       - ENVIRONMENT=development
     ports:
-      - "8000:8000"
+      - "12003:8000"
     volumes:
       - .:/app
       - /app/.venv
@@ -82,7 +82,7 @@ services:
     image: redis:7-alpine
     container_name: kanban-redis
     ports:
-      - "6379:6379"
+      - "12004:6379"
     volumes:
       - redis_data:/data
     networks:
