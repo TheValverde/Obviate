@@ -20,7 +20,6 @@ class CardBase(BaseModel):
     description: Optional[str] = Field(None, max_length=5000, description="Card description")
     board_id: str = Field(..., description="Board ID")
     column_id: str = Field(..., description="Column ID")
-    position: int = Field(..., ge=0, description="Card position within column (0-based)")
     priority: int = Field(default=2, ge=1, le=5, description="Card priority (1=lowest, 5=highest)")
     labels: Optional[List[str]] = Field(default=None, description="Card labels")
     assignees: Optional[List[str]] = Field(default=None, description="List of assignees")
@@ -33,7 +32,7 @@ class CardBase(BaseModel):
 class CardCreate(CardBase):
     """Schema for creating a new card."""
     
-    pass
+    position: Optional[int] = Field(None, ge=0, description="Card position within column (0-based). If not provided, card will be appended to the end of the column.")
 
 
 class CardUpdate(BaseModel):
@@ -53,6 +52,7 @@ class CardUpdate(BaseModel):
 class CardResponse(CardBase, BaseResponse):
     """Schema for card response."""
     
+    position: int = Field(description="Card position within column (0-based)")
     id: str = Field(description="Card ID")
     tenant_id: str = Field(description="Tenant ID")
     version: int = Field(description="Version number for optimistic concurrency")

@@ -4,10 +4,12 @@ Column repository for column-specific database operations.
 
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, update
+from datetime import datetime, timezone
 
 from .base import BaseRepository
 from app.models.column import Column
+from app.models.card import Card
 
 
 class ColumnRepository(BaseRepository[Column]):
@@ -256,3 +258,99 @@ class ColumnRepository(BaseRepository[Column]):
             include_deleted=include_deleted,
             filters={"board_id": board_id}
         )
+
+    async def delete(
+        self,
+        entity_id: str,
+        tenant_id: str,
+        version: Optional[int] = None,
+        hard_delete: bool = False
+    ) -> bool:
+        """
+        Delete a column with cascade deletion of its cards.
+        
+        This method ensures that when a column is deleted, all cards in that column
+        are also deleted to prevent orphaned records.
+        
+        Args:
+            entity_id: Column ID
+            tenant_id: Tenant ID for isolation
+            version: Expected version for optimistic concurrency
+            hard_delete: Whether to perform hard delete instead of soft delete
+            
+        Returns:
+            True if column was deleted, False if not found
+        """
+        # First, get the column to verify it exists and get its board_id
+        column = await self.get_by_id(entity_id, tenant_id)
+        if not column:
+            return False
+        
+        # If version check is required, verify it matches
+        if version is not None and column.version != version:
+            return False
+        
+        try:
+            if hard_delete:
+                # Hard delete: Delete cards first, then column
+                # Delete all cards in this column
+                card_delete_query = delete(Card).where(
+                    and_(
+                        Card.column_id == entity_id,
+                        Card.tenant_id == tenant_id
+                    )
+                )
+                await self.session.execute(card_delete_query)
+                
+                # Delete the column
+                column_delete_query = delete(self.model).where(
+                    and_(
+                        self.model.id == entity_id,
+                        self.model.tenant_id == tenant_id
+                    )
+                )
+                if version is not None:
+                    column_delete_query = column_delete_query.where(self.model.version == version)
+                
+                result = await self.session.execute(column_delete_query)
+                await self.session.commit()
+                return result.rowcount > 0
+            else:
+                # Soft delete: Mark cards as deleted first, then column
+                # Soft delete all cards in this column
+                card_update_query = update(Card).where(
+                    and_(
+                        Card.column_id == entity_id,
+                        Card.tenant_id == tenant_id,
+                        Card.deleted_at.is_(None)  # Only update non-deleted cards
+                    )
+                ).values(
+                    deleted_at=datetime.now(timezone.utc),
+                    version=Card.version + 1
+                )
+                await self.session.execute(card_update_query)
+                
+                # Soft delete the column
+                column_update_query = update(self.model).where(
+                    and_(
+                        self.model.id == entity_id,
+                        self.model.tenant_id == tenant_id
+                    )
+                )
+                
+                if version is not None:
+                    column_update_query = column_update_query.where(self.model.version == version)
+                    column_update_query = column_update_query.values(version=version + 1)
+                
+                # Set deleted_at timestamp
+                column_update_query = column_update_query.values(
+                    deleted_at=datetime.now(timezone.utc)
+                )
+                
+                result = await self.session.execute(column_update_query)
+                await self.session.commit()
+                return result.rowcount > 0
+                
+        except Exception:
+            await self.session.rollback()
+            return False

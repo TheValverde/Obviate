@@ -65,7 +65,7 @@ class TestResult:
 class KanbanAPITester:
     """Comprehensive API tester for Kanban For Agents."""
     
-    def __init__(self, base_url: str = "http://localhost:8000", verbose: bool = False):
+    def __init__(self, base_url: str = "http://localhost:12003", verbose: bool = False):
         self.base_url = base_url.rstrip('/')
         self.verbose = verbose
         self.session: Optional[aiohttp.ClientSession] = None
@@ -647,8 +647,8 @@ class KanbanAPITester:
 async def main():
     """Main function."""
     parser = argparse.ArgumentParser(description="Kanban For Agents API Test Suite")
-    parser.add_argument("--base-url", default="http://localhost:8000", 
-                       help="Base URL for the API (default: http://localhost:8000)")
+    parser.add_argument("--base-url", default="http://localhost:12003", 
+                       help="Base URL for the API (default: http://localhost:12003)")
     parser.add_argument("--verbose", "-v", action="store_true", 
                        help="Enable verbose logging")
     parser.add_argument("--cleanup", "-c", action="store_true", 

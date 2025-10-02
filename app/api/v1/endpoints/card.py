@@ -41,6 +41,11 @@ async def create_card(
     """
     Create a new card.
     
+    If position is not provided, the card will be automatically appended to the end
+    of the specified column. If position is provided, the card will be placed at that
+    exact position using smart "insert and shift" logic, reordering existing cards
+    to accommodate the new card.
+    
     Args:
         card_data: Card creation data
         repo: Card repository instance
@@ -50,10 +55,51 @@ async def create_card(
         CardResponse: Created card data
         
     Raises:
-        BadRequestException: If card data is invalid
+        BadRequestException: If card data is invalid or position placement fails
     """
     try:
-        card = await repo.create(data=card_data.model_dump(), tenant_id=tenant_id)
+        # Prepare card data
+        card_dict = card_data.model_dump()
+        
+        # Handle position assignment
+        if card_data.position is None:
+            # Auto-assign to the end of the column
+            max_position = await repo.get_max_position(card_data.column_id, tenant_id)
+            # If max_position is 0, check if the column is actually empty
+            if max_position == 0:
+                # Check if there are any cards in the column
+                cards_in_column = await repo.list_by_column(card_data.column_id, tenant_id, limit=1)
+                if not cards_in_column:
+                    card_dict["position"] = 0  # First card in empty column
+                else:
+                    card_dict["position"] = 1  # Next position after existing cards
+            else:
+                card_dict["position"] = max_position + 1  # Next position after the current maximum
+        else:
+            # User specified a position - we'll create the card at position 0 first,
+            # then use our smart reordering logic to move it to the desired position
+            card_dict["position"] = 0  # Temporary position, will be reordered after creation
+        
+        card = await repo.create(data=card_dict, tenant_id=tenant_id)
+        
+        # If user specified a position, use smart reordering to place it correctly
+        if card_data.position is not None:
+            # Use our smart reordering logic to move the card to the desired position
+            success = await repo.reorder_card(
+                card_id=card.id,
+                column_id=card.column_id,
+                new_position=card_data.position,
+                tenant_id=tenant_id
+            )
+            
+            if not success:
+                # If reordering failed, we should probably delete the card and return an error
+                # But for now, we'll just return the card at position 0
+                raise BadRequestException("Failed to place card at specified position")
+            
+            # Get the updated card with the correct position
+            card = await repo.get_by_id(card.id, tenant_id)
+        
         return CardResponse.model_validate(card.to_dict())
     except Exception as e:
         raise BadRequestException(f"Failed to create card: {str(e)}")

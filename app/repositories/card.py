@@ -4,10 +4,13 @@ Card repository for card-specific database operations.
 
 from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, or_, func, update, delete
+from datetime import datetime, timezone
 
 from .base import BaseRepository
 from app.models.card import Card
+from app.models.comment import Comment
+from app.models.attachment import Attachment
 
 
 class CardRepository(BaseRepository[Card]):
@@ -17,6 +20,124 @@ class CardRepository(BaseRepository[Card]):
     
     def __init__(self, session: AsyncSession):
         super().__init__(Card, session)
+    
+    async def delete(
+        self,
+        entity_id: str,
+        tenant_id: str,
+        version: Optional[int] = None,
+        hard_delete: bool = False
+    ) -> bool:
+        """
+        Delete a card with cascade deletion of its comments and attachments.
+        
+        This method ensures that when a card is deleted, all comments and attachments
+        associated with that card are also deleted to prevent orphaned records.
+        
+        Args:
+            entity_id: Card ID
+            tenant_id: Tenant ID for isolation
+            version: Expected version for optimistic concurrency
+            hard_delete: Whether to perform hard delete instead of soft delete
+            
+        Returns:
+            True if card was deleted, False if not found
+        """
+        # First, get the card to verify it exists
+        card = await self.get_by_id(entity_id, tenant_id)
+        if not card:
+            return False
+        
+        # If version check is required, verify it matches
+        if version is not None and card.version != version:
+            return False
+        
+        try:
+            if hard_delete:
+                # Hard delete: Delete comments and attachments first, then card
+                # Delete all comments for this card
+                comment_delete_query = delete(Comment).where(
+                    and_(
+                        Comment.card_id == entity_id,
+                        Comment.tenant_id == tenant_id
+                    )
+                )
+                await self.session.execute(comment_delete_query)
+                
+                # Delete all attachments for this card
+                attachment_delete_query = delete(Attachment).where(
+                    and_(
+                        Attachment.card_id == entity_id,
+                        Attachment.tenant_id == tenant_id
+                    )
+                )
+                await self.session.execute(attachment_delete_query)
+                
+                # Delete the card
+                card_delete_query = delete(self.model).where(
+                    and_(
+                        self.model.id == entity_id,
+                        self.model.tenant_id == tenant_id
+                    )
+                )
+                if version is not None:
+                    card_delete_query = card_delete_query.where(self.model.version == version)
+                
+                result = await self.session.execute(card_delete_query)
+                await self.session.commit()
+                return result.rowcount > 0
+            else:
+                # Soft delete: Mark comments and attachments as deleted first, then card
+                # Soft delete all comments for this card
+                comment_update_query = update(Comment).where(
+                    and_(
+                        Comment.card_id == entity_id,
+                        Comment.tenant_id == tenant_id,
+                        Comment.deleted_at.is_(None)  # Only update non-deleted comments
+                    )
+                ).values(
+                    deleted_at=datetime.now(timezone.utc),
+                    version=Comment.version + 1
+                )
+                await self.session.execute(comment_update_query)
+                
+                # Soft delete all attachments for this card
+                attachment_update_query = update(Attachment).where(
+                    and_(
+                        Attachment.card_id == entity_id,
+                        Attachment.tenant_id == tenant_id,
+                        Attachment.deleted_at.is_(None)  # Only update non-deleted attachments
+                    )
+                ).values(
+                    deleted_at=datetime.now(timezone.utc),
+                    version=Attachment.version + 1
+                )
+                await self.session.execute(attachment_update_query)
+                
+                # Soft delete the card
+                card_update_query = update(self.model).where(
+                    and_(
+                        self.model.id == entity_id,
+                        self.model.tenant_id == tenant_id
+                    )
+                )
+                
+                if version is not None:
+                    card_update_query = card_update_query.where(self.model.version == version)
+                    card_update_query = card_update_query.values(version=version + 1)
+                
+                # Set deleted_at timestamp
+                card_update_query = card_update_query.values(
+                    deleted_at=datetime.now(timezone.utc)
+                )
+                
+                result = await self.session.execute(card_update_query)
+                await self.session.commit()
+                return result.rowcount > 0
+                
+        except Exception:
+            await self.session.rollback()
+            return False
     
     async def list_by_board(
         self,
